@@ -38,64 +38,109 @@ echo_home:
 	if [ -z $(HOME) ]; then echo 'HOME not defined'; false; fi
 	echo $(HOME)
 
+FORCE:
 
-components := componentA componentB
-components_targets := $(patsubst %,install-%,$(components))
-components_targets += $(patsubst %,uninstall-%,$(components))
+inspect-%: FORCE
+	@echo $($*)
 
-.PHONY: components_targets
-$(filter install-%,$(components_targets)): install-%:
-	@echo 'Installing component: $*'
+all_components := componentA componentB
+all_targets := $(patsubst %,setup-%,$(all_components))
+all_targets += $(patsubst %,build-%,$(all_components))
+all_targets += $(patsubst %,test-%,$(all_components))
+all_targets += $(patsubst %,doc-%,$(all_components))
+all_targets += $(patsubst %,install-%,$(all_components))
+all_targets += $(patsubst %,uninstall-%,$(all_components))
+all_targets += $(patsubst %,maintainer-clean-%,$(all_components))
+all_targets += $(patsubst %,clean-%,$(all_components))
 
-$(filter uninstall-%,$(components_targets)): uninstall-%:
-	@echo 'Uninstalling component: $*'
+all_targets += TAGS
+all_targets += maintainer-clean-TAGS
+.PHONY: all_targets
 
-.PHONY: install
-install: $(filter install-%,$(components_targets))
-	@echo 'Compile, copy executables, libraries etc.; may verify installation'
-	@echo 'May verify installation'
-
-.PHONY: uninstall
-uninstall: $(filter uninstall-%,$(components_targets))
-	@echo 'Revert install without cleaning builds'
-
-.PHONY: clean
-clean:
-	@echo 'Delete all builds or files created by this makefile'
-	@echo 'Maybe preserve configurations'
-
-.PHONY: TAGS
 TAGS:
-	@echo 'Update tags file'
+	@echo 'creating tags file'
 
-.PHONY: clean-TAGS
-clean-TAGS:
-	@echo 'Clear created tags file'
+$(filter setup-%,$(all_targets)): setup-%:
+	@echo 'setup for component: $*'
 
-.PHONY: maintainer-clean
-maintainer-clean: clean-TAGS
-	@echo 'Clean up everything makefile can build used to maintain the package'
+.PHONY: setup
+setup: $(filter setup-%,$(all_targets))
+	@echo 'setup up completed'
 
-.PHONY: dist
-dist:
-	@echo 'Create distribution file of the project'
+$(filter build-%,$(all_targets)): build-%:
+	@echo 'build for component: $*'
 
-.PHONY: distclean
-distclean:
-	@echo 'Delete all created for packaging or building the program'
+.PHONY: build
+build: $(filter build-%,$(all_targets))
+	@echo 'build up completed'
 
-.PHONY: doc
-doc:
-	@echo 'Generate documentation'
+$(filter test-%,$(all_targets)): test-%:
+	@echo 'test for component: $*'
 
 .PHONY: test
-test:
-	@echo 'runs tests such as unittest, smoke, integration, whatever team decides'
+test: $(filter test-%,$(all_targets))
+	@echo 'test up completed'
 
-.PHONY: check
-check:
-	@echo 'runs all tests such as `test` target plus lint coverage etc'
+$(filter install-%,$(all_targets)): install-%:
+	@echo 'install for component: $*'
 
-.PHONY: all
-all:
-	@echo 'Usually the default target, does it all'
+.PHONY: install
+install: $(filter install-%,$(all_targets))
+	@echo 'install up completed'
+
+$(filter uninstall-%,$(all_targets)): uninstall-%:
+	@echo 'uninstall for component: $*'
+
+.PHONY: uninstall
+uninstall: $(filter uninstall-%,$(all_targets))
+	@echo 'uninstall up completed'
+
+$(filter maintainer-clean-%,$(all_targets)): maintainer-clean-%:
+	@echo 'maintainer-clean for component: $*'
+
+.PHONY: maintainer-clean
+maintainer-clean: $(filter maintainer-clean-%,$(all_targets))
+	@echo 'maintainer-clean up completed'
+
+$(filter clean-%,$(all_targets)): clean-%:
+	@echo 'clean for component: $*'
+
+.PHONY: clean
+clean: $(filter clean-%,$(all_targets))
+	@echo 'clean up completed'
+
+# .PHONY: TAGS
+# TAGS:
+# 	@echo 'Update tags file'
+#
+# .PHONY: clean-TAGS
+# clean-TAGS:
+# 	@echo 'Clear created tags file'
+#
+# .PHONY: maintainer-clean
+# maintainer-clean: clean-TAGS
+# 	@echo 'Clean up everything makefile can build used to maintain the package'
+#
+# .PHONY: dist
+# dist:
+# 	@echo 'Create distribution file of the project'
+#
+# .PHONY: distclean
+# distclean:
+# 	@echo 'Delete all created for packaging or building the program'
+#
+# .PHONY: doc
+# doc:
+# 	@echo 'Generate documentation'
+#
+# .PHONY: test
+# test:
+# 	@echo 'runs tests such as unittest, smoke, integration, whatever team decides'
+#
+# .PHONY: check
+# check:
+# 	@echo 'runs all tests such as `test` target plus lint coverage etc'
+#
+# .PHONY: all
+# all:
+# 	@echo 'Usually the default target, does it all'
