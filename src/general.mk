@@ -18,8 +18,8 @@ empty :=
 space := $(empty) $(empty)
 
 # ...to achieve list joining
-foo:= a b c
-bar:= $(subst $(space),$(comma),$(foo))
+foo := a b c
+bar := $(subst $(space),$(comma),$(foo))
 
 # ...use comma as argument
 rcs_archive := foo.c,v
