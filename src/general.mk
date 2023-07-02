@@ -43,6 +43,29 @@ FORCE:
 inspect-%: FORCE
 	@echo $($*)
 
+define add_gitignore
+	grep --quiet --line-regexp --fixed-strings $(1) .gitignore 2> /dev/null \
+	|| echo $(1) >> .gitignore
+	sort -o .gitignore{,}
+endef
+
+define del_gitignore
+	sed --in-place '\,$*,d' .gitignore
+	sort -o .gitignore{,}
+endef
+
+add-gitignore-%: FORCE
+	@$(call add_gitignore,$*)
+
+add-gitignore-/%: FORCE
+	@$(call add_gitignore,$*)
+
+del-gitignore-%: FORCE
+	@$(call del_gitignore,$*)
+
+del-gitignore-/%: FORCE
+	@$(call del_gitignore,$*)
+
 all_components := componentA componentB
 all_targets := $(patsubst %,setup-%,$(all_components))
 all_targets += $(patsubst %,build-%,$(all_components))
