@@ -55,6 +55,7 @@ all_targets += $(patsubst %,clean-%,$(all_components))
 
 .PHONY: all_targets
 
+.PHONY: TAGS
 TAGS:
 	@echo 'creating stags file'
 
@@ -96,6 +97,7 @@ uninstall: $(filter uninstall-%,$(all_targets))
 $(filter maintainer-clean-%,$(all_targets)): maintainer-clean-%:
 	@echo 'maintainer-clean for component: $*'
 
+.PHONY: maintainer-clean-TAGS
 maintainer-clean-TAGS:
 	@echo 'rm ctags file'
 
