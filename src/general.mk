@@ -78,14 +78,6 @@ all_targets += $(patsubst %,clean-%,$(all_components))
 
 .PHONY: all_targets
 
-.PHONY: TAGS
-TAGS:
-	@echo 'creating stags file'
-
-.PHONY: maintainer-clean-TAGS
-maintainer-clean-TAGS:
-	@echo 'rm ctags file'
-
 $(filter setup-%,$(all_targets)): setup-%:
 	@echo 'setup for component: $*'
 
@@ -106,6 +98,21 @@ $(filter test-%,$(all_targets)): test-%:
 .PHONY: test
 test: $(filter test-%,$(all_targets))
 	@echo 'test up completed'
+
+.PHONY: lint
+lint:
+	@echo 'static code analysis'
+
+.PHONY: check
+check: test lint
+	@echo 'completed $^'
+
+$(filter doc-%,$(all_targets)): doc-%:
+	@echo 'doc for component: $*'
+
+.PHONY: doc
+doc: $(filter doc-%,$(all_targets))
+	@echo 'doc up completed'
 
 $(filter install-%,$(all_targets)): install-%:
 	@echo 'install for component: $*'
@@ -136,38 +143,22 @@ $(filter clean-%,$(all_targets)): clean-%:
 clean: $(filter clean-%,$(all_targets))
 	@echo 'clean up completed'
 
-# .PHONY: TAGS
-# TAGS:
-# 	@echo 'Update tags file'
-#
-# .PHONY: clean-TAGS
-# clean-TAGS:
-# 	@echo 'Clear created tags file'
-#
-# .PHONY: maintainer-clean
-# maintainer-clean: clean-TAGS
-# 	@echo 'Clean up everything makefile can build used to maintain the package'
-#
-# .PHONY: dist
-# dist:
-# 	@echo 'Create distribution file of the project'
-#
-# .PHONY: distclean
-# distclean:
-# 	@echo 'Delete all created for packaging or building the program'
-#
-# .PHONY: doc
-# doc:
-# 	@echo 'Generate documentation'
-#
-# .PHONY: test
-# test:
-# 	@echo 'runs tests such as unittest, smoke, integration, whatever team decides'
-#
-# .PHONY: check
-# check:
-# 	@echo 'runs all tests such as `test` target plus lint coverage etc'
-#
-# .PHONY: all
-# all:
-# 	@echo 'Usually the default target, does it all'
+.PHONY: TAGS
+TAGS:
+	@echo 'creating stags file'
+
+.PHONY: maintainer-clean-TAGS
+maintainer-clean-TAGS:
+	@echo 'rm ctags file'
+
+.PHONY: dist
+dist:
+	@echo 'Create distribution file of the project'
+
+.PHONY: distclean
+distclean:
+	@echo 'Delete all created for packaging or building the program'
+
+.PHONY: all
+all:
+	@echo 'Usually the default target, does it all'
