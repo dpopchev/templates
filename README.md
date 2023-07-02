@@ -12,3 +12,4 @@ Automate project maintenance using **GNU Make**.
 - [Mad Scientist](https://make.mad-scientist.net/papers/rules-of-makefiles/)
 - [makefile tutorial](https://makefiletutorial.com/)
 - [Official documentation](https://www.gnu.org/software/make/manual/make.html)
+- [stamp idiom](https://www.technovelty.org/tips/the-stamp-idiom-with-make.html)
