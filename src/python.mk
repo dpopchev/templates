@@ -66,99 +66,68 @@ del-gitignore-%: FORCE
 del-gitignore-/%: FORCE
 	@$(call del_gitignore,$*)
 
-all_components := componentA componentB
-all_targets := $(patsubst %,setup-%,$(all_components))
-all_targets += $(patsubst %,build-%,$(all_components))
-all_targets += $(patsubst %,test-%,$(all_components))
-all_targets += $(patsubst %,doc-%,$(all_components))
-all_targets += $(patsubst %,install-%,$(all_components))
-all_targets += $(patsubst %,uninstall-%,$(all_components))
-all_targets += $(patsubst %,maintainer-clean-%,$(all_components))
-all_targets += $(patsubst %,clean-%,$(all_components))
+venv := $(shell echo $${VIRTUAL_ENV-.venv})
+VIRTUAL_ENV ?= ''
+pyseed ?= $(shell command -v python3 2> /dev/null)
+python := $(venv)/bin/python
+pip := $(python) -m pip
 
-.PHONY: all_targets
+define is_venv_inactive
+	if [[ ! -z $(VIRTUAL_ENV) ]]; then \
+		echo 'Python virtual environment ACTIVE'; \
+		echo 'Run: deactivate'; \
+		exit 2; \
+	fi
+endef
 
-$(filter setup-%,$(all_targets)): setup-%:
-	@echo 'setup for component: $*'
+define has_python_seed
+	if [[ -z $(pyseed) ]]; then \
+		echo 'No python seed found, possible resolutions:'; \
+		echo '-- pass inline, e.g. pyseed=/path/python make <goal>';\
+		echo '-- overwrite <pyseed> variable in Makefile';\
+		exit 2; \
+	fi
+endef
 
-.PHONY: setup
-setup: $(filter setup-%,$(all_targets))
-	@echo 'setup up completed'
+stamp_dir := .stamps
 
-$(filter build-%,$(all_targets)): build-%:
-	@echo 'build for component: $*'
+$(stamp_dir):
+	mkdir --parents $@
 
-.PHONY: build
-build: $(filter build-%,$(all_targets))
-	@echo 'build up completed'
+.PHONY: stampdir
+stampdir: add-gitignore-$(stamp_dir) | $(stamp_dir)
 
-$(filter test-%,$(all_targets)): test-%:
-	@echo 'test for component: $*'
+venv_stamp := $(stamp_dir)/venv.stamp
+$(venv_stamp): | stampdir add-gitignore-$(venv)
+	@$(call is_venv_inactive)
+	@$(call has_python_seed)
+	$(pyseed) -m venv $(venv)
+	$(pip) install --upgrade pip > /dev/null
+	$(pip) install --upgrade build > /dev/null
+	@touch $@
 
-.PHONY: test
-test: $(filter test-%,$(all_targets))
-	@echo 'test up completed'
+.PHONY: setup-venv
+setup-venv: $(venv_stamp)
+	@echo 'python virtual env setup -- [done]'
 
-.PHONY: lint
-lint:
-	@echo 'static code analysis'
+.PHONY: clean-venv
+clean-venv: add-gitignore-$(venv)
+	rm --force --recursive $(venv_stamp) $(venv)
 
-.PHONY: check
-check: test lint
-	@echo 'completed $^'
+.PHONY: venv
+venv:
+	@echo "Active shell: $$0"
+	@echo "Command to activate virtual environment:"
+	@echo "- bash/zsh: source $(venv)/bin/activate"
+	@echo "- fish: source $(venv)/bin/activate.fish"
+	@echo "- csh/tcsh: source $(venv)/bin/activate.csh"
+	@echo "- PowerShell: $(venv)/bin/Activate.ps1"
+	@echo "Exit: deactivate"
 
-$(filter doc-%,$(all_targets)): doc-%:
-	@echo 'doc for component: $*'
+.PHONY: setup-requirements
+setup-requirements:
+	@echo 'Setting up venv requirements'
 
-.PHONY: doc
-doc: $(filter doc-%,$(all_targets))
-	@echo 'doc up completed'
-
-$(filter install-%,$(all_targets)): install-%:
-	@echo 'install for component: $*'
-
-.PHONY: install
-install: $(filter install-%,$(all_targets))
-	@echo 'install up completed'
-
-$(filter uninstall-%,$(all_targets)): uninstall-%:
-	@echo 'uninstall for component: $*'
-
-.PHONY: uninstall
-uninstall: $(filter uninstall-%,$(all_targets))
-	@echo 'uninstall up completed'
-
-$(filter maintainer-clean-%,$(all_targets)): maintainer-clean-%:
-	@echo 'maintainer-clean for component: $*'
-
-.PHONY: maintainer-clean
-maintainer-clean: $(filter maintainer-clean-%,$(all_targets))
-maintainer-clean: maintainer-clean-TAGS
-	@echo 'maintainer-clean up completed'
-
-$(filter clean-%,$(all_targets)): clean-%:
-	@echo 'clean for component: $*'
-
-.PHONY: clean
-clean: $(filter clean-%,$(all_targets))
-	@echo 'clean up completed'
-
-.PHONY: TAGS
-TAGS:
-	@echo 'creating stags file'
-
-.PHONY: maintainer-clean-TAGS
-maintainer-clean-TAGS:
-	@echo 'rm ctags file'
-
-.PHONY: dist
-dist:
-	@echo 'Create distribution file of the project'
-
-.PHONY: distclean
-distclean:
-	@echo 'Delete all created for packaging or building the program'
-
-.PHONY: all
-all:
-	@echo 'Usually the default target, does it all'
+.PHONY: setup ### setup virtual environment for project and its requirements
+setup: setup-venv setup-requirements
+	@echo 'setup venv'
