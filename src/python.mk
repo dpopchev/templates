@@ -12,31 +12,11 @@ SHELL := bash
 help:
 	@sed -nr '/#{3}/{s/\.PHONY:/--/; s/\ *#{3}/:/; p;}' ${MAKEFILE_LIST}
 
-# handy definitions...
-comma := ,
-empty :=
-space := $(empty) $(empty)
-
-# ...to achieve list joining
-foo := a b c
-bar := $(subst $(space),$(comma),$(foo))
-
-# ...use comma as argument
-rcs_archive := foo.c,v
-rcs_srcs := $(patsubst %$(comma)v,%,$(rcs_archive))
-
-# optional environment variable
-ENVVAR ?=
-
-# globally required environment variable
-ifdef $(HOME)
-	$(error HOME not set)
-endif
-
-# environment variable required by target
-echo_home:
-	if [ -z $(HOME) ]; then echo 'HOME not defined'; false; fi
-	echo $(HOME)
+venv := $(shell echo $${VIRTUAL_ENV-.venv})
+VIRTUAL_ENV ?= ''
+pyseed ?= $(shell command -v python3 2> /dev/null)
+python := $(venv)/bin/python
+pip := $(python) -m pip
 
 FORCE:
 
@@ -66,12 +46,6 @@ del-gitignore-%: FORCE
 del-gitignore-/%: FORCE
 	@$(call del_gitignore,$*)
 
-venv := $(shell echo $${VIRTUAL_ENV-.venv})
-VIRTUAL_ENV ?= ''
-pyseed ?= $(shell command -v python3 2> /dev/null)
-python := $(venv)/bin/python
-pip := $(python) -m pip
-
 define is_venv_inactive
 	if [[ ! -z $(VIRTUAL_ENV) ]]; then \
 		echo 'Python virtual environment ACTIVE'; \
@@ -85,6 +59,14 @@ define has_python_seed
 		echo 'No python seed found, possible resolutions:'; \
 		echo '-- pass inline, e.g. pyseed=/path/python make <goal>';\
 		echo '-- overwrite <pyseed> variable in Makefile';\
+		exit 2; \
+	fi
+endef
+
+define is_venv_present
+	if [[ ! -e $(python) ]]; then \
+		echo 'No virtual environment found'; \
+		echo 'Run: make install-venv'; \
 		exit 2; \
 	fi
 endef
@@ -115,11 +97,12 @@ install-venv: $(venv_stamp)
 	@$(call log,'install virtual env', '[done]')
 
 .PHONY: clean-venv
-clean-venv: add-gitignore-$(venv)
+clean-venv: del-gitignore-$(venv)
 	rm --force --recursive $(venv_stamp) $(venv)
 
 .PHONY: venv
-venv: setup-venv
+venv:
+	@$(call is_venv_present)
 	@echo "Active shell: $$0"
 	@echo "Command to activate virtual environment:"
 	@echo "- bash/zsh: source $(venv)/bin/activate"
@@ -130,7 +113,7 @@ venv: setup-venv
 
 requirements := requirements.txt
 $(requirements):
-	@echo "pytest" >> $@
+	@echo "pytest" > $@
 	@echo "pytest-mock" >> $@
 	@echo "pytest-cov" >> $@
 	@echo "pytest-datafiles" >> $@
@@ -146,18 +129,21 @@ $(requirements_stamp): $(requirements) $(venv_stamp)
 	@touch $@
 
 .PHONY: install-requirements
-install-requirements: $(requirements_stamp)
+install-requirements: $(requirements_stamp) $(venv_stamp)
 	@$(call log,'install requirements', '[done]')
 
 .PHONY: uninstall-requirements
 uninstall-requirements:
+	@$(call is_venv_present)
 	[[ ! -e $(requirements) ]] || $(pip) uninstall --requirement $(requirements) --yes
 	@rm --force $(requirements_stamp)
 
 .PHONY: clean-requirements
-clean-requirements: uninstall-requirements
+clean-requirements:
 	rm --force $(requirements) $(requirements_stamp)
 
 .PHONY: setup ### setup virtual environment for project and its requirements
-setup: setup-venv setup-requirements
-	@echo 'setup venv'
+setup: install-venv install-requirements
+
+.PHONY: clean
+clean: clean-venv
