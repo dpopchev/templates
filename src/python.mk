@@ -113,7 +113,7 @@ venv:
 
 requirements := requirements.txt
 $(requirements):
-	@echo "pytest" > $@
+	@echo "pytest" >> $@
 	@echo "pytest-mock" >> $@
 	@echo "pytest-cov" >> $@
 	@echo "pytest-datafiles" >> $@
