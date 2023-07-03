@@ -12,6 +12,7 @@ SHELL := bash
 help:
 	@sed -nr '/#{3}/{s/\.PHONY:/--/; s/\ *#{3}/:/; p;}' ${MAKEFILE_LIST}
 
+package := template
 venv := $(shell echo $${VIRTUAL_ENV-.venv})
 VIRTUAL_ENV ?= ''
 pyseed ?= $(shell command -v python3 2> /dev/null)
@@ -94,7 +95,7 @@ $(venv_stamp): | stampdir add-gitignore-$(venv)
 
 .PHONY: install-venv ###
 install-venv: $(venv_stamp)
-	@$(call log,'install virtual env', '[done]')
+	@$(call log,'install virtual env','[done]')
 
 .PHONY: clean-venv
 clean-venv: del-gitignore-$(venv)
@@ -130,7 +131,7 @@ $(requirements_stamp): $(requirements) $(venv_stamp)
 
 .PHONY: install-requirements ###
 install-requirements: $(requirements_stamp) $(venv_stamp)
-	@$(call log,'install requirements', '[done]')
+	@$(call log,'install requirements','[done]')
 
 .PHONY: uninstall-requirements
 uninstall-requirements:
@@ -145,6 +146,39 @@ clean-requirements:
 
 .PHONY: setup ### install-venv and install-requirements
 setup: install-venv install-requirements
+
+pyprojectrc := pyproject.toml README.md LICENSE
+pyproject.toml:
+	@echo '[build-system]' >> $@
+	@echo 'requires = ["setuptools"]' >> $@
+	@echo 'build-backend = "setuptools.build_meta"' >> $@
+	@echo '' >> $@
+	@echo '[project]' >> $@
+	@echo 'name = "$(package)"' >> $@
+	@echo 'version = "0.0.1"' >> $@
+	@echo 'requires-python = ">=3.7"' >> $@
+	@echo 'dependencies = []' >> $@
+
+README.md:
+	@echo '# $(package)' >> $@
+	@echo 'Excellent package with much to offer' >> $@
+	@echo '## Quickstart' >> $@
+	@echo 'clone and `pyseed=/path/python make development`' >> $@
+
+LICENSE:
+	@echo 'MIT License' >> $@
+
+pyproject_stamp := $(stamp_dir)/pyproject.stamp
+$(pyproject_stamp): $(pyprojectrc) | $(stamp_dir)
+	@touch $@
+
+.PHONY: setup-pyproject ### pyproject.toml, README, LICENSE
+setup-pyproject: $(pyproject_stamp)
+	@$(call log,'setup python project structure','[done]')
+
+.PHONY: clean-pyproject
+clean-pyproject:
+	rm --force $(pyprojectrc) $(pyproject_stamp)
 
 .PHONY: clean
 clean: clean-venv
