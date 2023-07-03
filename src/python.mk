@@ -110,9 +110,9 @@ $(venv_stamp): | stampdir add-gitignore-$(venv)
 	$(pip) install --upgrade build > /dev/null
 	@touch $@
 
-.PHONY: setup-venv
-setup-venv: $(venv_stamp)
-	@$(call log,'virtual env setup', '[done]')
+.PHONY: install-venv
+install-venv: $(venv_stamp)
+	@$(call log,'install virtual env', '[done]')
 
 .PHONY: clean-venv
 clean-venv: add-gitignore-$(venv)
@@ -145,9 +145,18 @@ $(requirements_stamp): $(requirements) $(venv_stamp)
 	@sort -o $(requirements){,}
 	@touch $@
 
-.PHONY: setup-requirements
-setup-requirements: setup-venv $(requirements_stamp)
-	@$(call log,'requirements setup', '[done]')
+.PHONY: install-requirements
+install-requirements: $(requirements_stamp)
+	@$(call log,'install requirements', '[done]')
+
+.PHONY: uninstall-requirements
+uninstall-requirements:
+	[[ ! -e $(requirements) ]] || $(pip) uninstall --requirement $(requirements) --yes
+	@rm --force $(requirements_stamp)
+
+.PHONY: clean-requirements
+clean-requirements: uninstall-requirements
+	rm --force $(requirements) $(requirements_stamp)
 
 .PHONY: setup ### setup virtual environment for project and its requirements
 setup: setup-venv setup-requirements
