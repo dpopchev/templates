@@ -140,6 +140,7 @@ uninstall-requirements:
 
 .PHONY: clean-requirements
 clean-requirements:
+	$(pip) uninstall --requirement $(requirements) --yes > /dev/null 2>&1 || true
 	rm --force $(requirements) $(requirements_stamp)
 
 .PHONY: setup ### install-venv and install-requirements
