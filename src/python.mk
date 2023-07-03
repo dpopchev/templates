@@ -89,6 +89,10 @@ define has_python_seed
 	fi
 endef
 
+define log
+	printf "%-60s %20s \n" $(1) $(2)
+endef
+
 stamp_dir := .stamps
 
 $(stamp_dir):
@@ -108,14 +112,14 @@ $(venv_stamp): | stampdir add-gitignore-$(venv)
 
 .PHONY: setup-venv
 setup-venv: $(venv_stamp)
-	@echo 'python virtual env setup -- [done]'
+	@$(call log,'virtual env setup', '[done]')
 
 .PHONY: clean-venv
 clean-venv: add-gitignore-$(venv)
 	rm --force --recursive $(venv_stamp) $(venv)
 
 .PHONY: venv
-venv:
+venv: setup-venv
 	@echo "Active shell: $$0"
 	@echo "Command to activate virtual environment:"
 	@echo "- bash/zsh: source $(venv)/bin/activate"
@@ -124,9 +128,26 @@ venv:
 	@echo "- PowerShell: $(venv)/bin/Activate.ps1"
 	@echo "Exit: deactivate"
 
+requirements := requirements.txt
+$(requirements):
+	@echo "pytest" >> $@
+	@echo "pytest-mock" >> $@
+	@echo "pytest-cov" >> $@
+	@echo "pytest-datafiles" >> $@
+	@echo "pylint" >> $@
+	@echo "pylint-junit" >> $@
+	@echo "autopep8" >> $@
+	@echo "pynvim" >> $@
+
+requirements_stamp := $(stamp_dir)/$(requirements).stamp
+$(requirements_stamp): $(requirements) $(venv_stamp)
+	$(pip) install --upgrade --requirement $< > /dev/null
+	@sort -o $(requirements){,}
+	@touch $@
+
 .PHONY: setup-requirements
-setup-requirements:
-	@echo 'Setting up venv requirements'
+setup-requirements: setup-venv $(requirements_stamp)
+	@$(call log,'requirements setup', '[done]')
 
 .PHONY: setup ### setup virtual environment for project and its requirements
 setup: setup-venv setup-requirements
