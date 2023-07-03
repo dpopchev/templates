@@ -72,7 +72,7 @@ define is_venv_present
 endef
 
 define log
-	printf "%-60s %20s \n" $(1) $(2)
+	printf "%-50s %30s \n" $(1) $(2)
 endef
 
 stamp_dir := .stamps
