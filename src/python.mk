@@ -283,5 +283,48 @@ unittest: development
 .PHONY: test
 test: doctest unittest
 
+.PHONY: lint
+list_module := pylint
+list_module += --fail-under=7.5
+
+ifdef FILE
+lint_runner := $(python) -m $(list_module) $(FILE)
+else
+lint_runner := $(python) -m $(list_module) $(src_dir)/
+endif
+
+ifdef SHOULD_JUNIT_REPORT
+lint_runner += --output-format=pylint_junit.JUnitReporter
+lint_runner += > test-results/lint/results.xml
+endif
+
+lint: development
+ifdef SHOULD_JUNIT_REPORT
+	mkdir --parents test-results/lint/
+endif
+	$(lint_runner)
+
+.PHONY: coverage
+coverage_module := pytest
+coverage_module += --cov=$(src_dir)
+coverage_module += --cov-branch
+coverage_module += --cov-fail-under=75
+coverage_module += --doctest-modules
+
+ifdef SHOULD_JUNIT_REPORT
+coverage_module += --cov-report=xml:test-results/coverage/report.xml
+endif
+
+ifdef SHOULD_HTML_REPORT
+coverage_module += --cov-report=html
+endif
+
+coverage-runner := $(python) -m $(coverage_module)
+coverage: development
+	$(coverage-runner)
+
+.PHONY: check
+check: test lint coverage
+
 .PHONY: clean
 clean: clean-package clean-venv clean-stampdir
