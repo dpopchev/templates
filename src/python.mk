@@ -332,6 +332,13 @@ coverage: development
 	@$(call add_gitignore,.coverage)
 	@$(call log,'test coverage','[done]')
 
+.PHONY: clean-coverage
+clean-coverage:
+	@rm --force --recursive .coverage
+	@$(call del_gitignore,.coverage)
+	@$(call log,'clean coverage','[done]')
+
+
 .PHONY: check ### test with lint and coverage
 check: test lint coverage
 
@@ -363,6 +370,7 @@ dist: development test
 distclean:
 	@$(call del_gitignore,$(dist_dir))
 	@rm --force --recursive $(dist_dir)
+	@$(call log,'cleaning distribution package','[done]')
 
 ipython_stamp := $(stamp_dir)/ipython.stamp
 $(ipython_stamp): | $(stamp_dir)
@@ -396,6 +404,7 @@ TAGS:
 clean-TAGS:
 	@rm --force tags
 	@$(call del_gitignore,tags)
+	@$(call log,'cleaning tags file','[done]')
 
 .PHONY: clean
-clean: clean-TAGS distclean clean-package clean-venv clean-stampdir
+clean: clean-TAGS distclean clean-coverage clean-package clean-venv clean-stampdir
