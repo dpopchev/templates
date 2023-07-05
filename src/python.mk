@@ -92,7 +92,7 @@ $(venv_stamp): | $(stamp_dir)
 	@touch $@
 	@$(call log,'install virtual environment','[done]')
 
-.PHONY: install-venv ### self explanatory, counterparts: clean
+.PHONY: install-venv ### self explanatory; counterparts: clean
 install-venv: $(venv_stamp)
 
 .PHONY: clean-venv
@@ -113,9 +113,14 @@ venv:
 	@echo "- PowerShell: $(venv)/bin/Activate.ps1"
 	@echo "Exit: deactivate"
 
-.PHONY: install-requirements
-install-requirements:
-	@$(call log,'install maintenance requirements','[done]')
+requirements_stamp := $(stamp_dir)/requirements.stamp
+$(requirements_stamp): | $(stamp_dir)
+	@$(call is_venv_present)
+	@touch $@
+	@$(call log,'install project maintenance requirements','[done]')
+
+.PHONY: install-requirements ### project maintenance requirements; counterparts: uninstall, clean
+install-requirements: $(requirements_stamp)
 
 .PHONY: uninstall-requirements
 uninstall-requirements:
