@@ -71,6 +71,8 @@ endef
 stamp_dir := .stamps
 src_dir := src
 test_dir := tests
+dist_dir := dist
+build_dir := build
 
 $(stamp_dir):
 	@$(call add_gitignore,$@)
@@ -347,5 +349,19 @@ endif
 format:
 	@$(formatter_runner)
 
+build_module := build
+build_runner := $(python) -m $(build_module) > /dev/null
+
+.PHONY: dist ### create distribution package, counterpart: distclean
+dist: development test
+	@$(call add_gitignore,$(dist_dir))
+	@$(build_runner)
+	@$(call log,'creating distribution package','[done]')
+
+.PHONY: distclean
+distclean:
+	@$(call del_gitignore,$(dist_dir))
+	@rm --force --recursive $(dist_dir)
+
 .PHONY: clean
-clean: clean-package clean-venv clean-stampdir
+clean: distclean clean-package clean-venv clean-stampdir
