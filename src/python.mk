@@ -155,5 +155,42 @@ clean-requirements:
 .PHONY: setup ### install venv and requirements
 setup: install-venv install-requirements
 
+pyprojectrc := pyproject.toml README.md LICENSE
+pyproject.toml:
+	@echo '[build-system]' >> $@
+	@echo 'requires = ["setuptools"]' >> $@
+	@echo 'build-backend = "setuptools.build_meta"' >> $@
+	@echo '' >> $@
+	@echo '[project]' >> $@
+	@echo 'name = "$(package)"' >> $@
+	@echo 'version = "0.0.1"' >> $@
+	@echo 'requires-python = ">=3.7"' >> $@
+	@echo 'dependencies = []' >> $@
+
+README.md:
+	@echo '# $(package)' >> $@
+	@echo 'Excellent package with much to offer' >> $@
+	@echo '## Quickstart' >> $@
+	@echo '```' >> $@
+	@echo 'git clone ${url}' >> $@
+	@echo 'pyseed=/path/python make development' >> $@
+	@echo '```' >> $@
+
+LICENSE:
+	@echo 'MIT License' >> $@
+
+pyproject_stamp := $(stamp_dir)/pyproject.stamp
+$(pyproject_stamp): $(pyprojectrc) | $(stamp_dir)
+	@touch $@
+	@$(call log,'setup missing python packaging files','[done]')
+
+.PHONY: setup-pyproject ### add missing python packaging files, counterpart: clean
+setup-pyproject: $(pyproject_stamp)
+
+.PHONY: clean-pyproject
+clean-pyproject:
+	@rm --force $(pyprojectrc) $(pyproject_stamp)
+	@$(call log,'clean ALL python packaging files','[done]')
+
 .PHONY: clean
 clean: clean-venv clean-stampdir
