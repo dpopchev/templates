@@ -69,11 +69,16 @@ define is_venv_present
 endef
 
 stamp_dir := .stamps
+src_dir := src
+test_dir := tests
 
 $(stamp_dir):
 	@$(call add_gitignore,$@)
 	@mkdir --parents $@
 	@$(call log,'make stamps home','[done]')
+
+$(src_dir) $(test_dir):
+	@mkdir --parents $@
 
 .PHONY: clean-stampdir
 clean-stampdir:
@@ -191,6 +196,27 @@ setup-pyproject: $(pyproject_stamp)
 clean-pyproject:
 	@rm --force $(pyprojectrc) $(pyproject_stamp)
 	@$(call log,'clean ALL python packaging files','[done]')
+
+sample_package := $(src_dir)/$(package).py
+$(sample_package): | $(src_dir)
+	@echo "def sample(): return 0" >> $@
+	@$(call log,'install sample python package','[done]')
+
+sample_tests := $(test_dir)/test_$(package).py
+$(sample_tests): | $(test_dir)
+	@echo "import pytest" >> $@
+	@echo "from $(package) import sample" >> $@
+	@echo "def test_scenario_1(): assert sample() == 0" >> $@
+	@echo "def test_scenario_2(): assert not sample() != 0" >> $@
+	@$(call log,'install tests for sample python package','[done]')
+
+.PHONY: install-sample
+install-sample: $(sample_package) $(sample_tests)
+
+.PHONY: clean-sample
+clean-sample:
+	@rm --force $(sample_package) $(sample_tests)
+	@$(call log,'remove sample package and its tests','[done]')
 
 .PHONY: clean
 clean: clean-venv clean-stampdir
