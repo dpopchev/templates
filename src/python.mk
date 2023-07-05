@@ -285,6 +285,15 @@ unittest: development
 	@$(python) -m $(unittest_module) $(FILE)
 	@$(call log,'unittest','[done]')
 
+.PHONY: tests-structure ### make dir for every module under src
+tests-structure:
+	@if [ -d $(src_dir)/$(package) ]; then\
+		find $(src_dir)/$(package) -type f -name '*.py' \
+			| grep -v '__init__' \
+			| sed -rn "s/$(src_dir)\/$(package)/$(test_dir)/; s/.py//p" \
+			| xargs mkdir --parents;\
+	fi
+
 .PHONY: test ### doctest and unittest
 test: doctest unittest
 
@@ -337,7 +346,6 @@ clean-coverage:
 	@rm --force --recursive .coverage
 	@$(call del_gitignore,.coverage)
 	@$(call log,'clean coverage','[done]')
-
 
 .PHONY: check ### test with lint and coverage
 check: test lint coverage
