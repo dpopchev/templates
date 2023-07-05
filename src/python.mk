@@ -44,7 +44,7 @@ define del_gitignore
 endef
 
 define has_python_seed
-	if [[ -z $(pyseed) ]]; then \
+	if [ -z $(pyseed) ]; then \
 		echo 'No python seed found, possible resolutions:'; \
 		echo '-- pass inline, e.g. pyseed=/path/python make <goal>';\
 		echo '-- overwrite <pyseed> variable in Makefile';\
