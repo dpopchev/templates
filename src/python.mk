@@ -326,6 +326,7 @@ coverage-runner := $(python) -m $(coverage_module)
 .PHONY: coverage ### evaluate test coverage
 coverage: development
 	@$(coverage-runner)
+	@$(call add_gitignore,.coverage)
 	@$(call log,'test coverage','[done]')
 
 .PHONY: check ### test with lint and coverage
