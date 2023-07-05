@@ -121,5 +121,9 @@ install-requirements:
 uninstall-requirements:
 	@$(call log,'uninstall maintenance requirements','[done]')
 
+.PHONY: clean-requirements
+clean-requirements:
+	@$(call log,'remove maintenance requirements','[done]')
+
 .PHONY: clean
 clean: clean-venv clean-stampdir
