@@ -97,7 +97,7 @@ $(venv_stamp): | $(stamp_dir)
 	@touch $@
 	@$(call log,'install virtual environment','[done]')
 
-.PHONY: install-venv ### self explanatory; counterparts: clean
+.PHONY: install-venv ### counterpart: clean
 install-venv: $(venv_stamp)
 
 .PHONY: clean-venv
@@ -136,7 +136,7 @@ $(requirements_stamp): $(requirements) | $(stamp_dir)
 	@touch $@
 	@$(call log,'install project maintenance requirements','[done]')
 
-.PHONY: install-requirements ### project maintenance requirements; counterparts: uninstall, clean
+.PHONY: install-requirements ### counterparts: uninstall, clean
 install-requirements: $(requirements_stamp)
 
 .PHONY: uninstall-requirements
@@ -157,7 +157,7 @@ clean-requirements:
 	@rm --force $(requirements) $(requirements_stamp)
 	@$(call log,'remove maintenance requirements','[done]')
 
-.PHONY: setup ### install venv and requirements
+.PHONY: setup ### install venv and project requirements
 setup: install-venv install-requirements
 
 pyprojectrc := pyproject.toml README.md LICENSE
@@ -210,7 +210,7 @@ $(sample_tests): | $(test_dir)
 	@echo "def test_scenario_2(): assert not sample() != 0" >> $@
 	@$(call log,'install tests for sample python package','[done]')
 
-.PHONY: install-sample ### sample python package, counterpart: clean
+.PHONY: install-sample ### sample python project, counterpart: clean
 install-sample: $(sample_package) $(sample_tests)
 
 .PHONY: clean-sample
@@ -227,7 +227,7 @@ $(package_stamp): $(pyproject_stamp) $(venv_stamp) | $(stamp_dir)
 	@touch $@
 	@$(call log,'install package into virtual environment as editable','[done]')
 
-.PHONY: install-package ### install package, counterpart: uninstall,clean
+.PHONY: install-package ### install project package into venv, counterpart: uninstall, clean
 install-package: $(package_stamp)
 
 .PHONY: uninstall-package
@@ -250,7 +250,6 @@ run: development
 	$(python) $(FILE) $(ARGS)
 
 doctest_ignore := $(shell find -maxdepth 1 -mindepth 1 -type d -not -name $(src_dir))
-.PHONY: doctest
 doctest_module := pytest
 doctest_module += --quiet
 doctest_module += -rfE
@@ -262,11 +261,12 @@ ifdef SHOULD_JUNIT_REPORT
 doctest_module += --junit-xml=test-results/doctests/results.xml
 endif
 
+.PHONY: doctest ### run doc tests on particular <FILE> or all under $(src-dit)
 doctest: development
 	@$(python) -m $(doctest_module) $(FILE) || true
+	@$(call log,'doctests','[done]')
 
 unittest_ignore := $(shell find -maxdepth 1 -mindepth 1 -type d -not -name $(test_dir))
-.PHONY: unittest
 unittest_module := pytest
 unittest_module += --quiet
 unittest_module += -rfE
@@ -277,13 +277,14 @@ ifdef SHOULD_JUNIT_REPORT
 unittest_module += --junit-xml=test-results/unittests/results.xml
 endif
 
+.PHONY: unittest ### run unittest on particular <FILE> or all under $(test-dir)
 unittest: development
 	@$(python) -m $(unittest_module) $(FILE)
+	@$(call log,'unittest','[done]')
 
-.PHONY: test
+.PHONY: test ### doctest and unittest
 test: doctest unittest
 
-.PHONY: lint
 list_module := pylint
 list_module += --fail-under=7.5
 
@@ -298,13 +299,14 @@ lint_runner += --output-format=pylint_junit.JUnitReporter
 lint_runner += > test-results/lint/results.xml
 endif
 
+.PHONY: lint ### run lintter on <FILE> or all under $(src_dir);
 lint: development
 ifdef SHOULD_JUNIT_REPORT
 	mkdir --parents test-results/lint/
 endif
 	$(lint_runner)
+	@$(call log,'linter','[done]')
 
-.PHONY: coverage
 coverage_module := pytest
 coverage_module += --cov=$(src_dir)
 coverage_module += --cov-branch
@@ -320,10 +322,13 @@ coverage_module += --cov-report=html
 endif
 
 coverage-runner := $(python) -m $(coverage_module)
-coverage: development
-	$(coverage-runner)
 
-.PHONY: check
+.PHONY: coverage ### evaluate test coverage
+coverage: development
+	@$(coverage-runner)
+	@$(call log,'test coverage','[done]')
+
+.PHONY: check ### test with lint and coverage
 check: test lint coverage
 
 .PHONY: clean
