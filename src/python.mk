@@ -113,5 +113,9 @@ venv:
 	@echo "- PowerShell: $(venv)/bin/Activate.ps1"
 	@echo "Exit: deactivate"
 
+.PHONY: install-requirements
+install-requirements:
+	@$(call log,'install maintenance requirements','[done]')
+
 .PHONY: clean
 clean: clean-venv clean-stampdir
