@@ -60,6 +60,14 @@ define is_venv_inactive
 	fi
 endef
 
+define is_venv_present
+	@if [[ ! -e $(python) ]]; then \
+		echo 'No virtual environment found'; \
+		echo 'Run: make install-venv'; \
+		exit 2; \
+	fi
+endef
+
 stamp_dir := .stamps
 
 $(stamp_dir):
@@ -93,6 +101,17 @@ clean-venv:
 	@rm --force --recursive $(venv) $(venv_stamp)
 	@$(call del_gitignore,$(venv))
 	@$(call log,'remove virtual environment','[done]')
+
+.PHONY: venv ### virtual environment control info
+venv:
+	@$(call is_venv_present)
+	@echo "Active shell: $$0"
+	@echo "Command to activate virtual environment:"
+	@echo "- bash/zsh: source $(venv)/bin/activate"
+	@echo "- fish: source $(venv)/bin/activate.fish"
+	@echo "- csh/tcsh: source $(venv)/bin/activate.csh"
+	@echo "- PowerShell: $(venv)/bin/Activate.ps1"
+	@echo "Exit: deactivate"
 
 .PHONY: clean
 clean: clean-venv clean-stampdir
