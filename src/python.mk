@@ -247,7 +247,7 @@ development: setup install-package
 
 .PHONY: run ### run particular <FILE>, optionally pass some <ARGS>
 run: development
-	$(python) $(FILE) $(ARGS)
+	@$(python) $(FILE) $(ARGS)
 
 doctest_ignore := $(shell find -maxdepth 1 -mindepth 1 -type d -not -name $(src_dir))
 doctest_module := pytest
@@ -302,9 +302,9 @@ endif
 .PHONY: lint ### run lintter on <FILE> or all under $(src_dir);
 lint: development
 ifdef SHOULD_JUNIT_REPORT
-	mkdir --parents test-results/lint/
+	@mkdir --parents test-results/lint/
 endif
-	$(lint_runner)
+	@$(lint_runner)
 	@$(call log,'linter','[done]')
 
 coverage_module := pytest
@@ -331,6 +331,21 @@ coverage: development
 
 .PHONY: check ### test with lint and coverage
 check: test lint coverage
+
+formatter_module := autopep8
+formatter_module += --in-place
+formatter_module += --aggressive --aggressive
+formatter_module += --hang-closing --experimental
+
+ifdef FILE
+formatter_runner := $(python) -m $(formatter_module) $(FILE)
+else
+formatter_runner := $(python) -m $(formatter_module) --recursive $(src_dir)/ $(test_dir)/
+endif
+
+.PHONY: format ### auto format into pep8 FILE=path/file or all
+format:
+	@$(formatter_runner)
 
 .PHONY: clean
 clean: clean-package clean-venv clean-stampdir
