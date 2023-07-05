@@ -92,7 +92,7 @@ $(venv_stamp): | $(stamp_dir)
 	@touch $@
 	@$(call log,'install virtual environment','[done]')
 
-.PHONY: install-venv ###
+.PHONY: install-venv ### self explanatory, counterparts: clean
 install-venv: $(venv_stamp)
 
 .PHONY: clean-venv
@@ -102,7 +102,7 @@ clean-venv:
 	@$(call del_gitignore,$(venv))
 	@$(call log,'remove virtual environment','[done]')
 
-.PHONY: venv ### virtual environment control info
+.PHONY: venv ### virtual environment help
 venv:
 	@$(call is_venv_present)
 	@echo "Active shell: $$0"
