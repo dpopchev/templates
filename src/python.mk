@@ -233,6 +233,7 @@ install-package: $(package_stamp)
 .PHONY: uninstall-package
 uninstall-package:
 	@$(pip) uninstall $(package) --yes > /dev/null
+	@rm $(package_stamp)
 	@$(call log,'uninstall package from virtual environment','[done]')
 
 .PHONY: clean-package
@@ -243,6 +244,44 @@ clean-package:
 
 .PHONY: development ### setup virtual environment and install package
 development: setup install-package
+
+.PHONY: run ### run particular <FILE>, optionally pass some <ARGS>
+run: development
+	$(python) $(FILE) $(ARGS)
+
+doctest_ignore := $(shell find -maxdepth 1 -mindepth 1 -type d -not -name $(src_dir))
+.PHONY: doctest
+doctest_module := pytest
+doctest_module += --quiet
+doctest_module += -rfE
+doctest_module += --showlocals
+doctest_module += $(addprefix --ignore=,$(doctest_ignore))
+doctest_module += --doctest-modules
+
+ifdef SHOULD_JUNIT_REPORT
+doctest_module += --junit-xml=test-results/doctests/results.xml
+endif
+
+doctest: development
+	@$(python) -m $(doctest_module) $(FILE) || true
+
+unittest_ignore := $(shell find -maxdepth 1 -mindepth 1 -type d -not -name $(test_dir))
+.PHONY: unittest
+unittest_module := pytest
+unittest_module += --quiet
+unittest_module += -rfE
+unittest_module += --showlocals
+unittest_module += $(addprefix --ignore=,$(unittest_ignore))
+
+ifdef SHOULD_JUNIT_REPORT
+unittest_module += --junit-xml=test-results/unittests/results.xml
+endif
+
+unittest: development
+	@$(python) -m $(unittest_module) $(FILE)
+
+.PHONY: test
+test: doctest unittest
 
 .PHONY: clean
 clean: clean-package clean-venv clean-stampdir
