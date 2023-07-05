@@ -6,7 +6,7 @@ SHELL := bash
 .DELETE_ON_ERROR:
 .SUFFIXES:
 
-package := template
+package := my_pypackage
 pyseed ?= $(shell command -v python3 2> /dev/null)
 venv := $(shell echo $${VIRTUAL_ENV-.venv})
 VIRTUAL_ENV ?= ''
@@ -28,7 +28,7 @@ inspect-%: FORCE
 	@echo $($*)
 
 define log
-	printf "%-50s %30s \n" $(1) $(2)
+	printf "%-60s %20s \n" $(1) $(2)
 endef
 
 define add_gitignore
@@ -210,7 +210,7 @@ $(sample_tests): | $(test_dir)
 	@echo "def test_scenario_2(): assert not sample() != 0" >> $@
 	@$(call log,'install tests for sample python package','[done]')
 
-.PHONY: install-sample
+.PHONY: install-sample ### sample python package, counterpart: clean
 install-sample: $(sample_package) $(sample_tests)
 
 .PHONY: clean-sample
@@ -218,5 +218,31 @@ clean-sample:
 	@rm --force $(sample_package) $(sample_tests)
 	@$(call log,'remove sample package and its tests','[done]')
 
+package_egg := $(package).egg-info
+package_stamp := $(stamp_dir)/package.stamp
+$(package_stamp): $(pyproject_stamp) $(venv_stamp) | $(stamp_dir)
+	@$(pip) install --editable . > /dev/null
+	@$(call add_gitignore,$(package_egg))
+	@$(call add_gitignore,__pycache__)
+	@touch $@
+	@$(call log,'install package into virtual environment as editable','[done]')
+
+.PHONY: install-package ### install package, counterpart: uninstall,clean
+install-package: $(package_stamp)
+
+.PHONY: uninstall-package
+uninstall-package:
+	@$(pip) uninstall $(package) --yes > /dev/null
+	@$(call log,'uninstall package from virtual environment','[done]')
+
+.PHONY: clean-package
+clean-package:
+	@rm --force --recursive $(shell find . -type d -name "$(package_egg)") $(package_stamp)
+	@$(call del_gitignore,$(package_egg))
+	@$(call log,'clean package auxiliaries; make sure its was uninstalled','[done]')
+
+.PHONY: development ### setup virtual environment and install package
+development: setup install-package
+
 .PHONY: clean
-clean: clean-venv clean-stampdir
+clean: clean-package clean-venv clean-stampdir
