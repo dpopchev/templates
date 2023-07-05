@@ -77,7 +77,7 @@ build_dir := build
 $(stamp_dir):
 	@$(call add_gitignore,$@)
 	@mkdir --parents $@
-	@$(call log,'make stamps home','[done]')
+	@$(call log,'create $@','[done]')
 
 $(src_dir) $(test_dir):
 	@mkdir --parents $@
