@@ -113,9 +113,21 @@ venv:
 	@echo "- PowerShell: $(venv)/bin/Activate.ps1"
 	@echo "Exit: deactivate"
 
+requirements := requirements.txt
+$(requirements):
+	@echo "pytest" >> $@
+	@echo "pytest-mock" >> $@
+	@echo "pytest-cov" >> $@
+	@echo "pytest-datafiles" >> $@
+	@echo "pylint" >> $@
+	@echo "pylint-junit" >> $@
+	@echo "autopep8" >> $@
+	@echo "pynvim" >> $@
+
 requirements_stamp := $(stamp_dir)/requirements.stamp
-$(requirements_stamp): | $(stamp_dir)
+$(requirements_stamp): $(requirements) | $(stamp_dir)
 	@$(call is_venv_present)
+	@$(pip) install --upgrade --requirement $< > /dev/null
 	@touch $@
 	@$(call log,'install project maintenance requirements','[done]')
 
@@ -124,11 +136,24 @@ install-requirements: $(requirements_stamp)
 
 .PHONY: uninstall-requirements
 uninstall-requirements:
+	@if [ ! -e $(requirements_stamp) ]; then\
+		echo 'Misisng installation stamp';\
+		echo 'run make install-requirements';\
+		false;\
+	fi
+	@if [ -e $(requirements) ]; then\
+		$(pip) uninstall --requirement $(requirements) --yes > /dev/null;\
+	fi
+	@rm --force $(requirements_stamp)
 	@$(call log,'uninstall maintenance requirements','[done]')
 
 .PHONY: clean-requirements
 clean-requirements:
+	@rm --force $(requirements) $(requirements_stamp)
 	@$(call log,'remove maintenance requirements','[done]')
+
+.PHONY: setup ### install venv and requirements
+setup: install-venv install-requirements
 
 .PHONY: clean
 clean: clean-venv clean-stampdir
