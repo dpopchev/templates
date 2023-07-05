@@ -37,7 +37,7 @@ define add_gitignore
 endef
 
 define del_gitignore
-	if [ -e .gitignore ]; then\
+	if [ -e .gitignore ]; then \
 		sed --in-place '\,$(1),d' .gitignore;\
 		sort --unique --output .gitignore{,};\
 	fi
@@ -53,7 +53,7 @@ define has_python_seed
 endef
 
 define is_venv_inactive
-	@if [[ ! -z $(VIRTUAL_ENV) ]]; then \
+	if [ ! -z $(VIRTUAL_ENV) ]; then \
 		echo 'Python virtual environment ACTIVE'; \
 		echo 'Run: deactivate'; \
 		exit 2; \
@@ -61,7 +61,7 @@ define is_venv_inactive
 endef
 
 define is_venv_present
-	@if [[ ! -e $(python) ]]; then \
+	if [ ! -e $(python) ]; then \
 		echo 'No virtual environment found'; \
 		echo 'Run: make install-venv'; \
 		exit 2; \
