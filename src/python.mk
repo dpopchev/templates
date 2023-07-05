@@ -223,6 +223,7 @@ clean-sample:
 package_egg := $(package).egg-info
 package_stamp := $(stamp_dir)/package.stamp
 $(package_stamp): $(pyproject_stamp) $(venv_stamp) | $(stamp_dir)
+	@$(call is_venv_present)
 	@$(pip) install --editable . > /dev/null
 	@$(call add_gitignore,$(package_egg))
 	@$(call add_gitignore,__pycache__)
@@ -363,5 +364,38 @@ distclean:
 	@$(call del_gitignore,$(dist_dir))
 	@rm --force --recursive $(dist_dir)
 
+ipython_stamp := $(stamp_dir)/ipython.stamp
+$(ipython_stamp): | $(stamp_dir)
+	@$(call is_venv_present)
+	@$(pip) install ipython > /dev/null
+	@touch $@
+	@$(call log,'installing ipython into virtual environment','[done]')
+
+.PHONY: run-ipython ###
+run-ipython: $(ipython_stamp)
+	$(python) -m IPython --colors Linux
+
+notebook_stamp := $(stamp_dir)/notebook.stamp
+$(notebook_stamp): | $(stamp_dir)
+	@$(call is_venv_present)
+	@$(pip) install notebook > /dev/null
+	@touch $@
+	@$(call log,'installing jupyter into virtual environment','[done]')
+
+.PHONY: run-jupyter ###
+run-jupyter: $(notebook_stamp)
+	$(venv)/bin/jupyter notebook
+
+.PHONY: TAGS ### create tags file, counterpart: clean
+TAGS:
+	@$(call add_gitignore,tags)
+	@ctags --languages=python --recurse
+	@$(call log,'creating tags file','[done]')
+
+.PHONY: clean-TAGS
+clean-TAGS:
+	@rm --force tags
+	@$(call del_gitignore,tags)
+
 .PHONY: clean
-clean: distclean clean-package clean-venv clean-stampdir
+clean: clean-TAGS distclean clean-package clean-venv clean-stampdir
