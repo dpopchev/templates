@@ -43,28 +43,21 @@ FORCE:
 inspect-%: FORCE
 	@echo $($*)
 
+define log
+	printf "%-60s %20s \n" $(1) $(2)
+endef
+
 define add_gitignore
-	grep --quiet --line-regexp --fixed-strings $(1) .gitignore 2> /dev/null \
-	|| echo $(1) >> .gitignore
-	sort -o .gitignore{,}
+	echo $(1) >> .gitignore;
+	sort --unique --output .gitignore{,};
 endef
 
 define del_gitignore
-	sed --in-place '\,$*,d' .gitignore
-	sort -o .gitignore{,}
+	if [ -e .gitignore ]; then \
+		sed --in-place '\,$(1),d' .gitignore;\
+		sort --unique --output .gitignore{,};\
+	fi
 endef
-
-add-gitignore-%: FORCE
-	@$(call add_gitignore,$*)
-
-add-gitignore-/%: FORCE
-	@$(call add_gitignore,$*)
-
-del-gitignore-%: FORCE
-	@$(call del_gitignore,$*)
-
-del-gitignore-/%: FORCE
-	@$(call del_gitignore,$*)
 
 all_components := componentA componentB
 all_targets := $(patsubst %,setup-%,$(all_components))
