@@ -266,7 +266,7 @@ endif
 
 .PHONY: doctest ### run doc tests on particular <FILE> or all under $(src-dit)
 doctest: development
-	@$(python) -m $(doctest_module) $(FILE) || true
+	@$(python) -m $(doctest_module) $(FILE)
 	@$(call log,'doctests','[done]')
 
 unittest_ignore := $(shell find -maxdepth 1 -mindepth 1 -type d -not -name $(test_dir))
