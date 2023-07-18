@@ -179,7 +179,7 @@ README.md:
 	@echo 'Excellent package with much to offer' >> $@
 	@echo '## Quickstart' >> $@
 	@echo '```' >> $@
-	@echo 'git clone ${url}' >> $@
+	@echo 'git clone URL' >> $@
 	@echo 'pyseed=/path/python make development' >> $@
 	@echo '```' >> $@
 
