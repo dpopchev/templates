@@ -123,17 +123,17 @@ venv:
 requirements := requirements.txt
 $(requirements):
 	@echo "pytest" >> $@
-	@echo "pytest-mock" >> $@
 	@echo "pytest-cov" >> $@
-	@echo "pytest-datafiles" >> $@
-	@echo "pytest-pylint" >> $@
 	@echo "autopep8" >> $@
+	@echo "pylint" >> $@
+	@echo "pylint-junit" >> $@
 	@echo "pynvim" >> $@
 
 requirements_stamp := $(stamp_dir)/requirements.stamp
 $(requirements_stamp): $(requirements) | $(stamp_dir)
 	@$(call is_venv_present)
 	@$(pip) install --upgrade --requirement $< > /dev/null
+	@sort --unique --output $<{,}
 	@touch $@
 	@$(call log,'install project maintenance requirements','[done]')
 
@@ -296,7 +296,7 @@ tests-structure:
 .PHONY: test ### doctest and unittest
 test: doctest unittest
 
-lint_module := pytest --pylint
+lint_module := pylint --fail-under=5.0
 
 ifdef FILE
 lint_runner := $(python) -m $(lint_module) $(FILE)
@@ -305,7 +305,8 @@ lint_runner := $(python) -m $(lint_module) $(src_dir)/
 endif
 
 ifdef SHOULD_JUNIT_REPORT
-lint_runner += --junit-xml=test-results/lint/results.xml
+lint_runner += --output-format=pylint_junit.JUnitReporter
+lint_runner += > test-results/lint/results.xml
 endif
 
 .PHONY: lint ### run lintter on <FILE> or all under $(src_dir);
