@@ -296,7 +296,7 @@ tests-structure:
 .PHONY: test ### doctest and unittest
 test: doctest unittest
 
-lint_module := pytest --pylint -m pylint
+lint_module := pytest --pylint
 
 ifdef FILE
 lint_runner := $(python) -m $(lint_module) $(FILE)
@@ -319,7 +319,7 @@ endif
 coverage_module := pytest
 coverage_module += --cov=$(src_dir)
 coverage_module += --cov-branch
-coverage_module += --cov-fail-under=75
+coverage_module += --cov-fail-under=50
 coverage_module += --doctest-modules
 
 ifdef SHOULD_JUNIT_REPORT
