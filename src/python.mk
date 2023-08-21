@@ -308,7 +308,6 @@ endif
 
 ifdef SHOULD_JUNIT_REPORT
 lint_runner += --output-format=pylint_junit.JUnitReporter
-lint_runner += > test-results/lint/results.xml
 endif
 
 .PHONY: lint ### run lintter on <FILE> or all under $(src_dir);
