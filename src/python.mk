@@ -126,8 +126,7 @@ $(requirements):
 	@echo "pytest-mock" >> $@
 	@echo "pytest-cov" >> $@
 	@echo "pytest-datafiles" >> $@
-	@echo "pylint" >> $@
-	@echo "pylint-junit" >> $@
+	@echo "pytest-pylint" >> $@
 	@echo "autopep8" >> $@
 	@echo "pynvim" >> $@
 
@@ -297,17 +296,16 @@ tests-structure:
 .PHONY: test ### doctest and unittest
 test: doctest unittest
 
-list_module := pylint
-list_module += --fail-under=7.5
+lint_module := pytest --pylint -m pylint
 
 ifdef FILE
-lint_runner := $(python) -m $(list_module) $(FILE)
+lint_runner := $(python) -m $(lint_module) $(FILE)
 else
-lint_runner := $(python) -m $(list_module) $(src_dir)/
+lint_runner := $(python) -m $(lint_module) $(src_dir)/
 endif
 
 ifdef SHOULD_JUNIT_REPORT
-lint_runner += --output-format=pylint_junit.JUnitReporter
+lint_runner += --junit-xml=test-results/lint/results.xml
 endif
 
 .PHONY: lint ### run lintter on <FILE> or all under $(src_dir);
