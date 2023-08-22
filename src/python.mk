@@ -27,8 +27,11 @@ FORCE:
 inspect-%: FORCE
 	@echo $($*)
 
+# justify stdout log message using current screen size
+# right padding is 1
+# longest expected status message is [fail], i.e. length 6
 define log
-	printf "%-60s %20s \n" $(1) $(2)
+	printf "%-$$(($$(tput cols) - 7))s%-7s\n" $(1) $(2)
 endef
 
 define add_gitignore
