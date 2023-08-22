@@ -30,8 +30,13 @@ inspect-%: FORCE
 # justify stdout log message using current screen size
 # right padding is 1
 # longest expected status message is [fail], i.e. length 6
+TERM ?=
 define log
-	printf "%-$$(($$(tput cols) - 7))s%-7s\n" $(1) $(2)
+	if [ ! -z "$(TERM)" ]; then \
+		printf "%-$$(($$(tput cols) - 7))s%-7s\n" $(1) $(2);\
+	else \
+		printf "%s -- %s\n" $(1) $(2);\
+	fi
 endef
 
 define add_gitignore
