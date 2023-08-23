@@ -35,7 +35,7 @@ define log
 	if [ ! -z "$(TERM)" ]; then \
 		printf "%-$$(($$(tput cols) - 7))s%-7s\n" $(1) $(2);\
 	else \
-		printf "%s -- %s\n" $(1) $(2);\
+		printf "%-73s%6s \n" $(1) $(2);\
 	fi
 endef
 
