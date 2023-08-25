@@ -131,6 +131,8 @@ venv:
 requirements := requirements.txt
 $(requirements):
 	@echo "pytest" >> $@
+	@echo "add-trailing-comma" >> $@
+	@echo "isort" >> $@
 	@echo "pytest-cov" >> $@
 	@echo "autopep8" >> $@
 	@echo "pylint" >> $@
@@ -362,9 +364,15 @@ formatter_module += --aggressive --aggressive
 formatter_module += --hang-closing --experimental
 
 ifdef FILE
-formatter_runner := $(python) -m $(formatter_module) $(FILE)
+formatter_runner := $(python) -m $(formatter_module) $(FILE);
+formatter_runner += $(python) -m isort --quiet --atomic $(FILE);
+formatter_runner += $(python) -m add_trailing_comma --exit-zero-even-if-changed $(FILE);
 else
-formatter_runner := $(python) -m $(formatter_module) --recursive $(src_dir)/ $(test_dir)/
+formatter_runner := $(python) -m $(formatter_module) --recursive $(src_dir)/ $(test_dir)/;
+formatter_runner += $(python) -m isort --quiet --atomic $(shell find $(src_dir)/ -type f -name '*.py');
+formatter_runner += $(python) -m isort --quiet --atomic $(shell find $(test_dir) -type f -name '*.py');
+formatter_runner += $(python) -m add_trailing_comma --exit-zero-even-if-changed $(shell find $(src_dir)/ -type f -name '*.py') &> /dev/null;
+formatter_runner += $(python) -m add_trailing_comma --exit-zero-even-if-changed $(shell find $(test_dir) -type f -name '*.py') &> /dev/null;
 endif
 
 .PHONY: format ### auto format into pep8 FILE=path/file or all
