@@ -360,7 +360,6 @@ check: test lint coverage
 formatter_module := autopep8
 formatter_module += --in-place
 formatter_module += --aggressive --aggressive
-formatter_module += --hang-closing --experimental
 
 ifdef FILE
 formatter_runner := $(python) -m $(formatter_module) $(FILE);
