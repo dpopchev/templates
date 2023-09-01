@@ -80,7 +80,6 @@ stamp_dir := .stamps
 src_dir := src
 test_dir := tests
 dist_dir := dist
-build_dir := build
 
 $(stamp_dir):
 	@$(call add_gitignore,$@)
@@ -379,8 +378,7 @@ endif
 format:
 	@$(formatter_runner)
 
-build_module := build
-build_runner := $(python) -m $(build_module) > /dev/null
+build_runner := $(python) -m build > /dev/null
 
 .PHONY: dist ### create distribution package, counterpart: distclean
 dist: development test
