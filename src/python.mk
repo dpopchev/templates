@@ -297,7 +297,7 @@ unittest: development
 tests-structure:
 	@if [ -d $(src_dir)/$(package) ]; then\
 		find $(src_dir)/$(package) -type f -name '*.py' \
-			| grep -v '__init__' \
+			| grep -vP '__\w+__\.py' \
 			| sed -rn "s/$(src_dir)\/$(package)/$(test_dir)/; s/.py//p" \
 			| xargs mkdir --parents;\
 	fi
