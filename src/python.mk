@@ -300,6 +300,8 @@ tests-structure:
 			| grep -vP '__\w+__\.py' \
 			| sed -rn "s/$(src_dir)\/$(package)/$(test_dir)/; s/.py//p" \
 			| xargs mkdir --parents;\
+	else\
+		mkdir --parents $(test_dir)/$(package);\
 	fi
 
 .PHONY: test ### doctest and unittest
