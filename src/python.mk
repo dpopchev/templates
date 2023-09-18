@@ -155,7 +155,7 @@ $(package_stamp): $(python) $(packagerc) | $(src_dir) $(stamp_dir)
 	@$(pip) install --editable . > /dev/null
 	@$(call add_gitignore,$(package_egg))
 	@touch $@
-	@$(call log,'package installed into venv',$(done))
+	@$(call log,'$(package) installed into venv',$(done))
 
 $(packagerc):
 	@echo '[build-system]' >> $@
@@ -236,7 +236,7 @@ module ?= $(package)
 
 .PHONY: run ### run <module> trough venv
 run: development
-	@$(python) -m $(module)
+	@$(python) $(module)
 
 .PHONY: check ### test with lint and coverage
 check: test lint coverage
