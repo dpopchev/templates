@@ -23,6 +23,7 @@ inspect-%: FORCE
 TERM ?=
 done := [done]
 fail := [fail]
+
 define log
 if [ ! -z "$(TERM)" ]; then \
 	printf "%-$$(($$(tput cols) - 7))s%-7s\n" $(1) $(2);\
@@ -44,6 +45,7 @@ if [ -e .gitignore ]; then \
 endef
 
 stamp_dir := .stamps
+
 $(stamp_dir):
 	@$(call add_gitignore,$@)
 	@mkdir -p $@
@@ -51,6 +53,7 @@ $(stamp_dir):
 src_dir := src
 tests_dir := tests
 dist_dir := dist
+
 $(src_dir) $(tests_dir):
 	@mkdir -p $@
 
@@ -67,6 +70,7 @@ venv := .venv
 pyseed ?= $(shell command -v python3 2> /dev/null)
 python := $(venv)/bin/python
 pip := $(python) -m pip
+
 .PHONY: install-venv
 install-venv: $(python)
 
@@ -86,6 +90,7 @@ clean-venv: clean-requirements
 
 requirements := requirements.txt
 requirements_stamp := $(stamp_dir)/$(requirements).stamp
+
 .PHONY: install-requirements
 install-requirements: $(requirements_stamp)
 
@@ -127,7 +132,7 @@ venv:
 	@if [ ! -e $(python) ]; then \
 		echo 'No virtual environment found'; \
 		echo 'Run: install-venv or setup'; \
-		exit 2; \
+		false; \
 		fi
 	@echo "Active shell: $$0"
 	@echo "Command to activate virtual environment:"
@@ -184,8 +189,9 @@ sample_package := $(src_dir)/$(package).py
 sample_tests := $(tests_dir)/test_$(package).py
 sample_readme := README.md
 sample_license := LICENSE
-.PHONY: sample
-sample: $(sample_package) $(sample_tests)  ### sample package to demonstrate structure
+
+.PHONY: sample ### sample package to demonstrate structure
+sample: $(sample_package) $(sample_tests)
 sample: $(sample_readme) $(sample_license)
 
 $(sample_package): | $(src_dir)
@@ -227,6 +233,7 @@ clean-sample-aux:
 clean-sample: clean-sample-code clean-sample-aux
 
 module ?= $(package)
+
 .PHONY: run ### run <module> trough venv
 run: development
 	@$(python) -m $(module)
@@ -251,6 +258,7 @@ doctest_target := $(src_dir)
 ifneq ($(module),$(package))
 	doctest_target := $(module)
 endif
+
 .PHONY: doctest ### run doc tests on particular <module> or all under src/
 doctest: development
 	@$(python) -m $(doctest_module) $(doctest_target) || ([ $$? = 5 ] && exit 0 || exit $$?)
@@ -266,9 +274,11 @@ ifdef should_junit_report
 endif
 
 unittest_target := $(tests_dir)
+
 ifneq ($(module),$(package))
 	unittest_target := $(module)
 endif
+
 .PHONY: unittest ### run unittest on particular <module> or all under tests/
 unittest: development
 	@$(python) -m $(unittest_module) $(unittest_target)
@@ -284,6 +294,7 @@ lint_target := $(src_dir)
 ifneq ($(module),$(package))
 	lint_target := $(module)
 endif
+
 .PHONY: lint ### run lint on particular <module> or all under src/
 lint: development
 	@$(python) -m $(lint_module) $(lint_target)
@@ -304,6 +315,7 @@ ifdef should_html_report
 endif
 
 coverage_dir := .coverage
+
 .PHONY: coverage ### evaluate test coverage
 coverage: development
 	@$(python) -m $(coverage_module)
@@ -324,7 +336,6 @@ tests-structure:
 		| sed -rn "s/$(src_dir)\/$(package)/$(test_dir)/; s/.py//p" \
 		| xargs mkdir --parents;\
 		fi
-
 
 formatter_module_pep8 := autopep8
 formatter_module_pep8 += --in-place
@@ -347,7 +358,7 @@ else
 	formatter_module_add_trailing_comma += $(shell find $(src_dir)/ $(tests_dir)/ -type f -name '*.py') &> /dev/null
 endif
 
-.PHONY: format
+.PHONY: format ### autoformat work dir and auto commit; fails if dirty
 format:
 ifeq ($(module),$(package))
 	@[[ -z $$(git status --porcelain) ]] || (echo 'clean the dirty working tree'; false;)
@@ -373,7 +384,8 @@ distclean:
 	@$(call log,'clean up distribution package $(dist_dir)',$(done))
 
 ipython_stamp := $(stamp_dir)/ipython.stamp
-.PHONY: run-ipython ###
+
+.PHONY: run-ipython ### virtual env ipython
 run-ipython: $(ipython_stamp)
 	$(python) -m IPython --colors Linux
 
@@ -384,7 +396,7 @@ $(ipython_stamp): | $(stamp_dir)
 	@$(call log,'installing ipython into virtual environment',$(done))
 
 notebook_stamp := $(stamp_dir)/notebook.stamp
-.PHONY: run-jupyter ###
+.PHONY: run-jupyter ### virtual env jupyter server
 run-jupyter: $(notebook_stamp)
 	$(venv)/bin/jupyter notebook
 
@@ -394,7 +406,7 @@ $(notebook_stamp): | $(stamp_dir)
 	@touch $@
 	@$(call log,'installing jupyter into virtual environment',$(done))
 
-.PHONY: TAGS ### create tags file, counterpart: clean
+.PHONY: TAGS ### create tags file
 TAGS:
 	@$(call add_gitignore,tags)
 	@ctags --languages=python --recurse
@@ -407,6 +419,6 @@ clean-TAGS:
 	@$(call log,'cleaning tags file',$(done))
 
 .PHONY: clean
-clean: clean-package clean-venv clean-stampdir clean-sample
+clean: clean-package clean-venv clean-stampdir clean-sample-code
 clean: clean-TAGS distclean clean-coverage
 	@rm -rf __pycache__ .pytest_cache
