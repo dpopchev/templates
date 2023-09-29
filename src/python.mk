@@ -233,10 +233,14 @@ clean-sample-aux:
 clean-sample: clean-sample-code clean-sample-aux
 
 module ?= $(package)
-
-.PHONY: run ### run <module> trough venv
+args ?= ''
+.PHONY: run ### run <module> trough venv, may pass <args>
 run: development
-	@$(python) $(module)
+ifeq ($(module),$(package))
+	@$(python) -m $(module) $(args)
+else
+	@$(python) $(module) $(args)
+endif
 
 .PHONY: check ### test with lint and coverage
 check: test lint coverage
@@ -363,11 +367,11 @@ format:
 ifeq ($(module),$(package))
 	@[[ -z $$(git status --porcelain) ]] || (echo 'clean the dirty working tree'; false;)
 endif
-	$(python) -m $(formatter_module_pep8)
-	$(python) -m $(formatter_module_import_sort)
-	$(python) -m $(formatter_module_add_trailing_comma)
+	@$(python) -m $(formatter_module_pep8)
+	@$(python) -m $(formatter_module_import_sort)
+	@$(python) -m $(formatter_module_add_trailing_comma)
 ifeq ($(module),$(package))
-	git add . && git commit -m 'autoformat commit'
+	@git add . && git commit -m 'autoformat commit'
 endif
 	@$(call log,'auto formatting',$(done))
 
@@ -390,7 +394,6 @@ run-ipython: $(ipython_stamp)
 	$(python) -m IPython --colors Linux
 
 $(ipython_stamp): | $(stamp_dir)
-	@$(call is_venv_present)
 	@$(pip) install ipython > /dev/null
 	@touch $@
 	@$(call log,'installing ipython into virtual environment',$(done))
@@ -401,7 +404,6 @@ run-jupyter: $(notebook_stamp)
 	$(venv)/bin/jupyter notebook
 
 $(notebook_stamp): | $(stamp_dir)
-	@$(call is_venv_present)
 	@$(pip) install notebook > /dev/null
 	@touch $@
 	@$(call log,'installing jupyter into virtual environment',$(done))
