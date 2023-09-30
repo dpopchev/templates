@@ -386,26 +386,23 @@ distclean:
 	@rm -rf $(dist_dir)
 	@$(call log,'clean up distribution package $(dist_dir)',$(done))
 
-ipython_stamp := $(stamp_dir)/ipython.stamp
-
+ipython := $(venv)/bin/ipython
 .PHONY: run-ipython ### virtual env ipython
-run-ipython: $(ipython_stamp)
-	$(python) -m IPython --colors Linux
+run-ipython: $(ipython)
+	$< --colors Linux
 
-$(ipython_stamp): | $(stamp_dir)
+$(ipython):
 	@$(pip) install ipython > /dev/null
-	@touch $@
-	@$(call log,'installing ipython into virtual environment',$(done))
+	@$(call log,'install ipython into virtual environment',$(done))
 
-notebook_stamp := $(stamp_dir)/notebook.stamp
+jupyter := $(venv)/bin/jupyter
 .PHONY: run-jupyter ### virtual env jupyter server
-run-jupyter: $(notebook_stamp)
-	$(venv)/bin/jupyter notebook
+run-jupyter: $(jupyter)
+	 $< notebook
 
-$(notebook_stamp): | $(stamp_dir)
+$(jupyter): $(python)
 	@$(pip) install notebook > /dev/null
-	@touch $@
-	@$(call log,'installing jupyter into virtual environment',$(done))
+	@$(call log,'install jupyter into virtual environment',$(done))
 
 .PHONY: TAGS ### create tags file
 TAGS:
