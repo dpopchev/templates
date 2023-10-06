@@ -105,6 +105,7 @@ $(requirements):
 	@echo "add-trailing-comma" >> $@
 	@echo "isort" >> $@
 	@echo "pytest-cov" >> $@
+	@echo "pytest-mock" >> $@
 	@echo "autopep8" >> $@
 	@echo "pylint" >> $@
 	@echo "pylint-junit" >> $@
