@@ -69,7 +69,7 @@ package := mypackage
 venv := .venv
 pyseed ?= $(shell command -v python3 2> /dev/null)
 python := $(venv)/bin/python
-pip := $(python) -m pip
+pip := $(python) -m pip --disable-pip-version-check
 
 .PHONY: install-venv
 install-venv: $(python)
