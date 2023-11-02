@@ -343,7 +343,7 @@ tests-structure:
 
 formatter_module_pep8 := autopep8
 formatter_module_pep8 += --in-place
-formatter_module_pep8 += --aggressive --aggressive
+formatter_module_pep8 += --aggressive
 
 formatter_module_import_sort := isort
 formatter_module_import_sort += --quiet
