@@ -153,7 +153,7 @@ package_egg := $(package).egg-info
 install-package: $(package_stamp)
 
 $(package_stamp): $(python) $(packagerc) | $(src_dir) $(stamp_dir)
-	@$(pip) install --editable . > /dev/null
+	@$(pip) install --force-reinstall --editable . > /dev/null
 	@$(call add_gitignore,$(package_egg))
 	@touch $@
 	@$(call log,'$(package) installed into venv',$(done))
