@@ -17,18 +17,19 @@ FORCE:
 inspect-%: FORCE
 	@echo $($*)
 
-# justify stdout log message using current screen size
-# right padding is 1
-# longest expected status message is [fail], i.e. length 6
 TERM ?=
-done := [done]
-fail := [fail]
+done := done
+fail := fail
+info := info
 
+# justify stdout log message using current screen size, right padding is 1
+# status messages should be of length 4, e.g. done, fail, info
+# padding is set to 6 to account of left and right brackets
 define log
 if [ ! -z "$(TERM)" ]; then \
-	printf "%-$$(($$(tput cols) - 7))s%-7s\n" $(1) $(2);\
+	printf "%-$$(($$(tput cols) - 7))s%-7s\n" "$(1)" "[$(2)]" 1>&2;\
 	else \
-	printf "%-73s%6s \n" $(1) $(2);\
+	printf "%-73s%6s \n" "$(1)" "[$(2)]" 1>&2;\
 	fi
 endef
 
