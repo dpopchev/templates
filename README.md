@@ -1,15 +1,19 @@
 # makefile-templates
 
-Automate project maintenance using **GNU Make**.
+Collection of `GNU Make` implementations to automate project maintenance in
+different languages.
 
-## Quickstart
+## Install
 
-```
-ln -s Makefile src/python.mk
-make help
-```
+Just copy the makefile into project root or whenever you see fit.
 
-## Resources
+## Usage
+
+The makefiles not dedicated to any particular language are:
+
+- `template.mk`: use as starting point for your project
+
+## Acknowledgment
 
 - [Clark Grubb](https://clarkgrubb.com/makefile-style-guide)
 - [Mad Scientist](https://make.mad-scientist.net/papers/rules-of-makefiles/)
