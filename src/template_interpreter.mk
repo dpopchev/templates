@@ -82,7 +82,7 @@ $(venv_intrpr):
 	@$(call log,'install venv using seed $(venv_seed)',$(done))
 
 .PHONY: clean-venv
-clean-venv:
+clean-venv: clean-requirements
 	@echo 'Recipie to remove local namespace'
 	@$(call del_gitignore,$(venv))
 	@$(call log,'$@',$(done))
