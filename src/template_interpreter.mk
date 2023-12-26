@@ -115,6 +115,10 @@ uninstall-requirements:
 	@rm -f $(requirements_stamp)
 	@$(call log,'uninstall maintenance requirements','$(done)')
 
+.PHONY: clean-requirements
+clean-requirements:
+	@rm -rf $(requirements_stamp)
+
 .PHONY: venv ### virtual environment help
 venv:
 	@if [ ! -e $(venv_intrpr) ]; then \

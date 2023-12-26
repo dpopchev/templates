@@ -264,7 +264,7 @@ doctest_module += -rfE
 doctest_module += --showlocals
 doctest_module += --doctest-modules
 
-ifdef should_junit_report
+ifdef should_generate_report
 	doctest_module += --junit-xml=test-results/doctests/results.xml
 endif
 
@@ -283,7 +283,7 @@ unittest_module += --quiet
 unittest_module += -rfE
 unittest_module += --showlocals
 
-ifdef should_junit_report
+ifdef should_generate_report
 	unittest_module += --junit-xml=test-results/unittests/results.xml
 endif
 
@@ -300,7 +300,7 @@ unittest: development
 
 lint_module := pylint --fail-under=5.0
 
-ifdef should_junit_report
+ifdef should_generate_report
 	lint_module += --output-format=pylint_junit.JUnitReporter
 endif
 
@@ -320,11 +320,11 @@ coverage_module += --cov-branch
 coverage_module += --cov-fail-under=50
 coverage_module += --doctest-modules
 
-ifdef should_junit_report
+ifdef should_generate_report
 	coverage_module += --cov-report=xml:test-results/coverage/report.xml
 endif
 
-ifdef should_html_report
+ifdef should_generate_html_report
 	coverage_module += --cov-report=html
 endif
 
