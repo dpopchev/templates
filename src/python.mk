@@ -225,6 +225,8 @@ $(sample_readme):
 	@echo 'Place examples with expected output.' >> $@
 	@echo 'Start with `Setup` subsection for configuration.' >> $@
 	@echo 'Break intu sub-...subsections using scenario/feature names.' >> $@
+	@echo '## Acknowledgment' >> $@
+	@echo '- [makeareadme](https://www.makeareadme.com/)' >> $@
 	@$(call log,'install sample $@',$(done))
 
 $(sample_license):
