@@ -168,7 +168,7 @@ $(packagerc):
 	@echo '[project]' >> $@
 	@echo 'name = "$(package)"' >> $@
 	@echo 'version = "0.0.1"' >> $@
-	@echo 'requires-python = ">=3.7"' >> $@
+	@echo 'requires-python = ">=$(shell $(python) --version | grep -oP "\d.\d+")"' >> $@
 	@echo 'dependencies = []' >> $@
 
 .PHONY: uninstall-package
