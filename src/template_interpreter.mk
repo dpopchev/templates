@@ -181,7 +181,7 @@ $(sample_readme):
 	@echo 'Elevator pitch.' >> $@
 	@echo '## Install' >> $@
 	@echo '```' >> $@
-	@echo 'git clone <URL>' >> $@
+	@echo 'git clone --depth 1 <URL>' >> $@
 	@echo 'cd $(subst _,-,$(package))' >> $@
 	@echo 'make check' >> $@
 	@echo '```' >> $@
