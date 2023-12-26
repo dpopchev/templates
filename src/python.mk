@@ -118,10 +118,10 @@ uninstall-requirements:
 		echo 'Misisng installation stamp';\
 		echo 'run make install-requirements';\
 		false;\
-		fi
+	fi
 	@if [ -e $(requirements) ]; then\
 		$(pip) uninstall --requirement $(requirements) --yes > /dev/null;\
-		fi
+	fi
 	@rm -f $(requirements_stamp)
 	@$(call log,'uninstall maintenance requirements','$(done)')
 
@@ -135,7 +135,7 @@ venv:
 		echo 'No virtual environment found'; \
 		echo 'Run: install-venv or setup'; \
 		false; \
-		fi
+	fi
 	@echo "Active shell: $$0"
 	@echo "Command to activate virtual environment:"
 	@echo "- bash/zsh: source $(venv)/bin/activate"
@@ -150,6 +150,7 @@ development: setup install-package
 packagerc := pyproject.toml
 package_stamp := $(stamp_dir)/$(packagerc).stamp
 package_egg := $(package).egg-info
+
 .PHONY: install-package
 install-package: $(package_stamp)
 
@@ -176,7 +177,7 @@ uninstall-package:
 		echo 'Package not installed via current makefile';\
 		echo 'It is not safe to uninstall it';\
 		false;\
-		fi
+	fi
 	@$(pip) uninstall $(package) --yes > /dev/null
 	@rm -rf $(package_stamp) $(src_dir)/$(package_egg)
 	@$(call del_gitignore,$(package_egg))
@@ -340,7 +341,7 @@ tests-structure:
 		| grep -vP '__\w+__\.py' \
 		| sed -rn "s/$(src_dir)\/$(package)/$(tests_dir)/; s/.py//p" \
 		| xargs mkdir --parents;\
-		fi
+	fi
 
 formatter_module_pep8 := autopep8
 formatter_module_pep8 += --in-place
