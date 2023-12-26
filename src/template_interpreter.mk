@@ -18,18 +18,18 @@ inspect-%: FORCE
 	@echo $($*)
 
 TERM ?=
-done := done
-fail := fail
-info := info
+done := [done]
+fail := [fail]
+info := [info]
 
 # justify stdout log message using current screen size, right padding is 1
 # status messages should be of length 4, e.g. done, fail, info
 # padding is set to 6 to account of left and right brackets
 define log
 if [ ! -z "$(TERM)" ]; then \
-	printf "%-$$(($$(tput cols) - 7))s%-7s\n" "$(1)" "[$(2)]" 1>&2;\
+	printf "%-$$(($$(tput cols) - 7))s%-7s\n" $(1) $(2);\
 	else \
-	printf "%-73s%6s \n" "$(1)" "[$(2)]" 1>&2;\
+	printf "%-73s%6s \n" $(1) $(2);\
 	fi
 endef
 
@@ -69,20 +69,21 @@ setup: install-venv install-requirements
 package := mypackage
 venv := .venv
 venv_seed ?=
-venv_intrpr :=
-venv_mgr :=
+venv_intrpr := interpret
+venv_mgr := package_manager
 
 .PHONY: install-venv
 install-venv: $(venv_intrpr)
 
 $(venv_intrpr):
-	@echo 'Recipe to create local project namespace'
+	@echo 'Recipe to create project dedicated namespace'
 	@echo 'aka virtual environment'
 	@$(call add_gitignore,$(venv))
 	@$(call log,'install venv using seed $(venv_seed)',$(done))
 
 .PHONY: clean-venv
-clean-venv: clean-requirements
+clean-venv:
+	@echo 'Recipie to remove local namespace'
 	@$(call del_gitignore,$(venv))
 	@$(call log,'$@',$(done))
 
@@ -114,10 +115,6 @@ uninstall-requirements:
 	@rm -f $(requirements_stamp)
 	@$(call log,'uninstall maintenance requirements','$(done)')
 
-.PHONY: clean-requirements
-clean-requirements:
-	@rm -rf $(requirements_stamp)
-
 .PHONY: venv ### virtual environment help
 venv:
 	@if [ ! -e $(venv_intrpr) ]; then \
@@ -125,8 +122,7 @@ venv:
 		echo 'Run: install-venv or setup'; \
 		false; \
 	fi
-	@echo 'Recipe help for work with the virtual environment'
-	@echo 'Such as activation/deactivation or other'
+	@echo 'Help recipe on virtual environment, e.g. activation, deactivation'
 
 .PHONY: development ### setup and install package in editable mode
 development: setup install-package
@@ -142,7 +138,7 @@ $(package_stamp): $(venv_intrpr) $(packagerc) | $(src_dir) $(stamp_dir)
 	@$(call log,'$(package) installed into venv',$(done))
 
 $(packagerc):
-	@echo 'Default setup instructions for installing using venv manager'
+	@echo 'Recipe common package meta data'
 
 .PHONY: uninstall-package
 uninstall-package:
@@ -160,7 +156,7 @@ clean-package:
 	@rm -rf $(package_stamp)
 
 sample_package := $(src_dir)/sample_$(package)
-sample_tests := $(tests_dir)/test_sample_$(package).py
+sample_tests := $(tests_dir)/test_sample_$(package)
 sample_readme := README.md
 sample_license := LICENSE
 
@@ -169,11 +165,11 @@ sample: $(sample_package) $(sample_tests)
 sample: $(sample_readme) $(sample_license)
 
 $(sample_package): | $(src_dir)
-	@echo 'simple sample package implementation'
+	@echo 'Sample package implementation'
 	@$(call log,'install sample $@',$(done))
 
 $(sample_tests): | $(tests_dir)
-	@echo 'simple sample unittest'
+	@echo 'Sample unittest'
 	@$(call log,'install sample $@',$(done))
 
 $(sample_readme):
@@ -239,7 +235,7 @@ endif
 
 .PHONY: doctest ### run doc tests on particular <module> or all under src/
 doctest: development
-	@echo 'Run documentation test foudn in target $(doctest_targert)'
+	@echo 'Run documentation test found in target $(doctest_targert)'
 	@$(call log,'doctests',$(done))
 
 unittest_module :=
