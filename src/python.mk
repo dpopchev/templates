@@ -188,8 +188,8 @@ clean-package:
 	@rm -rf $(package_stamp) $(src_dir)/$(package_egg)
 	@$(call del_gitignore,$(package_egg))
 
-sample_package := $(src_dir)/$(package).py
-sample_tests := $(tests_dir)/test_$(package).py
+sample_package := $(src_dir)/sample_$(package).py
+sample_tests := $(tests_dir)/test_sample_$(package).py
 sample_readme := README.md
 sample_license := LICENSE
 
