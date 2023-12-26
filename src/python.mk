@@ -209,13 +209,20 @@ $(sample_tests): | $(tests_dir)
 	@$(call log,'install sample $@',$(done))
 
 $(sample_readme):
-	@echo '# $(package)' >> $@
-	@echo 'Excellent package with much to offer' >> $@
-	@echo '## Quickstart' >> $@
+	@echo '# $(package))' >> $@
+	@echo 'Elevator pitch.' >> $@
+	@echo '## Install' >> $@
 	@echo '```' >> $@
-	@echo 'git clone URL' >> $@
-	@echo 'pyseed=/path/python make development' >> $@
+	@echo 'git clone <URL>' >> $@
+	@echo 'cd $(subst _,-,$(package))' >> $@
+	@echo 'make check' >> $@
 	@echo '```' >> $@
+	@echo 'If more context is needed then rename section to `Installation`.' >> $@
+	@echo 'Put details into `Requirements` and `Install` subsections.' >> $@
+	@echo '## Usage' >> $@
+	@echo 'Place examples with expected output.' >> $@
+	@echo 'Start with `Setup` subsection for configuration.' >> $@
+	@echo 'Break intu sub-...subsections using scenario/feature names.' >> $@
 	@$(call log,'install sample $@',$(done))
 
 $(sample_license):
