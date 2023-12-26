@@ -102,13 +102,14 @@ $(requirements_stamp): $(requirements) $(python) | $(stamp_dir)
 
 $(requirements):
 	@echo "pytest" >> $@
-	@echo "add-trailing-comma" >> $@
-	@echo "isort" >> $@
 	@echo "pytest-cov" >> $@
 	@echo "pytest-mock" >> $@
-	@echo "autopep8" >> $@
 	@echo "pylint" >> $@
 	@echo "pylint-junit" >> $@
+	@echo "autopep8" >> $@
+	@echo "mypy" >> $@
+	@echo "add-trailing-comma" >> $@
+	@echo "isort" >> $@
 	@echo "pynvim" >> $@
 
 .PHONY: uninstall-requirements
