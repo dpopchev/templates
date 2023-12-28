@@ -12,6 +12,7 @@ Just copy the makefile into project root or whenever you see fit.
 The makefiles not dedicated to any particular language are:
 
 - `interpreter.mk`: use as starting point for interpretive languages,
+- `template.mk`: use as starting point for interpretive languages,
 
 ## Acknowledgment
 
