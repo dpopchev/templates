@@ -17,13 +17,15 @@ FORCE:
 inspect-%: FORCE
 	@echo $($*)
 
-# justify stdout log message using current screen size
-# right padding is 1; status length is fixed to 4
+# standard status messages to be used for logging;
+# length is fixed to 4 charters
 TERM ?=
 done := done
 fail := fail
 info := info
 
+# justify stdout log message using terminal screen size, if available
+# otherwise use predefined values
 define log
 if [ ! -z "$(TERM)" ]; then \
 	printf "%-$$(($$(tput cols) - 7))s[%-4s]\n" $(1) $(2);\
