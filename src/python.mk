@@ -18,8 +18,7 @@ inspect-%: FORCE
 	@echo $($*)
 
 # justify stdout log message using current screen size
-# right padding is 1
-# longest expected status message is [fail], i.e. length 6
+# right padding is 1; status length is fixed to 4
 TERM ?=
 done := done
 fail := fail
@@ -51,17 +50,17 @@ $(stamp_dir):
 	@$(call add_gitignore,$@)
 	@mkdir -p $@
 
+.PHONY: clean-stampdir
+clean-stampdir:
+	@rm -rf $(stamp_dir)
+	@$(call del_gitignore,$(stamp_dir))
+
 src_dir := src
 tests_dir := tests
 dist_dir := dist
 
 $(src_dir) $(tests_dir):
 	@mkdir -p $@
-
-.PHONY: clean-stampdir
-clean-stampdir:
-	@rm -rf $(stamp_dir)
-	@$(call del_gitignore,$(stamp_dir))
 
 .PHONY: setup ### install venv and its requirements for package development
 setup: install-venv install-requirements

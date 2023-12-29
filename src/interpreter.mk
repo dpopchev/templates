@@ -17,19 +17,18 @@ FORCE:
 inspect-%: FORCE
 	@echo $($*)
 
+# justify stdout log message using current screen size
+# right padding is 1; status length is fixed to 4
 TERM ?=
-done := [done]
-fail := [fail]
-info := [info]
+done := done
+fail := fail
+info := info
 
-# justify stdout log message using current screen size, right padding is 1
-# status messages should be of length 4, e.g. done, fail, info
-# padding is set to 6 to account of left and right brackets
 define log
 if [ ! -z "$(TERM)" ]; then \
-	printf "%-$$(($$(tput cols) - 7))s%-7s\n" $(1) $(2);\
+	printf "%-$$(($$(tput cols) - 7))s[%-4s]\n" $(1) $(2);\
 	else \
-	printf "%-73s%6s \n" $(1) $(2);\
+	printf "%-73s[%4s] \n" $(1) $(2);\
 	fi
 endef
 
@@ -51,17 +50,17 @@ $(stamp_dir):
 	@$(call add_gitignore,$@)
 	@mkdir -p $@
 
+.PHONY: clean-stampdir
+clean-stampdir:
+	@rm -rf $(stamp_dir)
+	@$(call del_gitignore,$(stamp_dir))
+
 src_dir := src
 tests_dir := tests
 dist_dir := dist
 
 $(src_dir) $(tests_dir):
 	@mkdir -p $@
-
-.PHONY: clean-stampdir
-clean-stampdir:
-	@rm -rf $(stamp_dir)
-	@$(call del_gitignore,$(stamp_dir))
 
 .PHONY: setup ### install venv and its requirements for package development
 setup: install-venv install-requirements

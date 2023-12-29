@@ -50,6 +50,11 @@ $(stamp_dir):
 	@$(call add_gitignore,$@)
 	@mkdir -p $@
 
+.PHONY: clean-stampdir
+clean-stampdir:
+	@rm -rf $(stamp_dir)
+	@$(call del_gitignore,$(stamp_dir))
+
 src_dir := src
 tests_dir := tests
 build_dir := build
@@ -60,12 +65,6 @@ $(src_dir) $(tests_dir):
 $(build_dir):
 	@mkdir -p $@
 	@$(call add_gitignore,$@/)
-
-.PHONY: clean-stampdir
-clean-stampdir:
-	@rm -rf $(stamp_dir)
-	@$(call del_gitignore,$(stamp_dir))
-
 
 .PHONY: build-object ### recipe building object
 build-object: build/build.o
