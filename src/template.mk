@@ -18,8 +18,7 @@ inspect-%: FORCE
 	@echo $($*)
 
 # justify stdout log message using current screen size
-# right padding is 1
-# longest expected status message is [fail], i.e. length 6
+# right padding is 1; status length is fixed to 4
 TERM ?=
 done := done
 fail := fail
