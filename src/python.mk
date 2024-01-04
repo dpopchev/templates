@@ -31,7 +31,7 @@ if [ ! -z "$(TERM)" ]; then \
 	printf "%-$$(($$(tput cols) - 7))s[%-4s]\n" $(1) $(2);\
 	else \
 	printf "%-73s[%4s] \n" $(1) $(2);\
-	fi
+fi
 endef
 
 define add_gitignore
@@ -43,7 +43,7 @@ define del_gitignore
 if [ -e .gitignore ]; then \
 	sed --in-place '\,$(1),d' .gitignore;\
 	sort --unique --output .gitignore{,};\
-	fi
+fi
 endef
 
 stamp_dir := .stamps
@@ -110,7 +110,6 @@ $(requirements):
 	@echo "pylint-junit" >> $@
 	@echo "autopep8" >> $@
 	@echo "mypy" >> $@
-	@echo "lxml" >> $@
 	@echo "add-trailing-comma" >> $@
 	@echo "isort" >> $@
 	@echo "pynvim" >> $@
@@ -128,7 +127,7 @@ uninstall-requirements:
 	@rm -f $(requirements_stamp)
 	@$(call log,'uninstall maintenance requirements','$(done)')
 
-.PHONY: clean-requirements
+.PHONY: clean-requirements ###
 clean-requirements:
 	@rm -rf $(requirements_stamp)
 
@@ -186,7 +185,7 @@ uninstall-package:
 	@$(call del_gitignore,$(package_egg))
 	@$(call log,'package uninstalled from venv',$(done))
 
-.PHONY: clean-package
+.PHONY: clean-package ###
 clean-package:
 	@rm -rf $(package_stamp) $(src_dir)/$(package_egg)
 	@$(call del_gitignore,$(package_egg))
@@ -244,7 +243,7 @@ clean-sample-aux:
 	@rm -rf $(sample_readme) $(sample_license)
 	@$(call log,'clean $(sample_readme) and $(sample_license)',$(done))
 
-.PHONY: clean-sample
+.PHONY: clean-sample ###
 clean-sample: clean-sample-code clean-sample-aux
 
 module ?= $(package)
@@ -306,7 +305,7 @@ unittest: development
 mypy_module := mypy --pretty
 
 ifdef should_generate_report
-	mypy_module += --xml-report=test-results/mypy/results.xml
+	mypy_module += --junit-xml=test-results/mypy/results.xml
 endif
 
 mypy_target := $(src_dir)
@@ -357,7 +356,7 @@ coverage: development
 	@$(call add_gitignore,$(coverage_dir))
 	@$(call log,'test coverage',$(done))
 
-.PHONY: clean-coverage
+.PHONY: clean-coverage ###
 clean-coverage:
 	@rm -rf $(coverage_dir)
 	@$(call del_gitignore,$(coverage_dir))
@@ -430,7 +429,7 @@ $(ipython):
 jupyter := $(venv)/bin/jupyter
 .PHONY: run-jupyter ### virtual env jupyter server
 run-jupyter: $(jupyter)
-	 $< notebook
+	$< notebook
 
 $(jupyter): $(python)
 	@$(pip) install notebook > /dev/null
