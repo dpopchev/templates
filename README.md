@@ -22,3 +22,7 @@ The makefiles not dedicated to any particular language are:
 - [Official documentation](https://www.gnu.org/software/make/manual/make.html)
 - [Stamp idiom](https://www.technovelty.org/tips/the-stamp-idiom-with-make.html)
 - [makeareadme](https://www.makeareadme.com/)
+
+## License
+
+[MIT](LICENSE)
