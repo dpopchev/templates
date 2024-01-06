@@ -217,6 +217,7 @@ $(sample_readme):
 	@echo '```' >> $@
 	@echo 'git clone --depth 1 <URL>' >> $@
 	@echo 'cd $(subst _,-,$(package))' >> $@
+	@echo 'make development' >> $@
 	@echo 'make check' >> $@
 	@echo '```' >> $@
 	@echo 'If more context is needed then rename section to `Installation`.' >> $@
