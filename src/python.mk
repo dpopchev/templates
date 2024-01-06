@@ -227,10 +227,13 @@ $(sample_readme):
 	@echo 'Break intu sub-...subsections using scenario/feature names.' >> $@
 	@echo '## Acknowledgment' >> $@
 	@echo '- [makeareadme](https://www.makeareadme.com/)' >> $@
+	@echo '## License' >> $@
+	@echo '[MIT](LICENSE)' >> $@
 	@$(call log,'install sample $@',$(done))
 
 $(sample_license):
 	@echo 'MIT License' >> $@
+	@echo '[get the text](https://choosealicense.com/licenses/mit/)' >> $@
 	@$(call log,'install sample $@',$(done))
 
 .PHONY: clean-sample-code ### remove sample_* files
