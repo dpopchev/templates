@@ -31,7 +31,7 @@ if [ ! -z "$(TERM)" ]; then \
 	printf "%-$$(($$(tput cols) - 7))s[%-4s]\n" $(1) $(2);\
 	else \
 	printf "%-73s[%4s] \n" $(1) $(2);\
-	fi
+fi
 endef
 
 define add_gitignore
@@ -43,7 +43,7 @@ define del_gitignore
 if [ -e .gitignore ]; then \
 	sed --in-place '\,$(1),d' .gitignore;\
 	sort --unique --output .gitignore{,};\
-	fi
+fi
 endef
 
 stamp_dir := .stamps
@@ -52,7 +52,7 @@ $(stamp_dir):
 	@$(call add_gitignore,$@)
 	@mkdir -p $@
 
-.PHONY: clean-stampdir
+.PHONY: clean-stampdir ### reset target-less phases tracked with stamps
 clean-stampdir:
 	@rm -rf $(stamp_dir)
 	@$(call del_gitignore,$(stamp_dir))
@@ -110,7 +110,6 @@ $(requirements):
 	@echo "pylint-junit" >> $@
 	@echo "autopep8" >> $@
 	@echo "mypy" >> $@
-	@echo "lxml" >> $@
 	@echo "add-trailing-comma" >> $@
 	@echo "isort" >> $@
 	@echo "pynvim" >> $@
@@ -128,7 +127,7 @@ uninstall-requirements:
 	@rm -f $(requirements_stamp)
 	@$(call log,'uninstall maintenance requirements','$(done)')
 
-.PHONY: clean-requirements
+.PHONY: clean-requirements ###
 clean-requirements:
 	@rm -rf $(requirements_stamp)
 
@@ -186,7 +185,7 @@ uninstall-package:
 	@$(call del_gitignore,$(package_egg))
 	@$(call log,'package uninstalled from venv',$(done))
 
-.PHONY: clean-package
+.PHONY: clean-package ###
 clean-package:
 	@rm -rf $(package_stamp) $(src_dir)/$(package_egg)
 	@$(call del_gitignore,$(package_egg))
@@ -218,6 +217,7 @@ $(sample_readme):
 	@echo '```' >> $@
 	@echo 'git clone --depth 1 <URL>' >> $@
 	@echo 'cd $(subst _,-,$(package))' >> $@
+	@echo 'make development' >> $@
 	@echo 'make check' >> $@
 	@echo '```' >> $@
 	@echo 'If more context is needed then rename section to `Installation`.' >> $@
@@ -228,10 +228,13 @@ $(sample_readme):
 	@echo 'Break intu sub-...subsections using scenario/feature names.' >> $@
 	@echo '## Acknowledgment' >> $@
 	@echo '- [makeareadme](https://www.makeareadme.com/)' >> $@
+	@echo '## License' >> $@
+	@echo '[MIT](LICENSE)' >> $@
 	@$(call log,'install sample $@',$(done))
 
 $(sample_license):
 	@echo 'MIT License' >> $@
+	@echo '[get the text](https://choosealicense.com/licenses/mit/)' >> $@
 	@$(call log,'install sample $@',$(done))
 
 .PHONY: clean-sample-code ### remove sample_* files
@@ -244,7 +247,7 @@ clean-sample-aux:
 	@rm -rf $(sample_readme) $(sample_license)
 	@$(call log,'clean $(sample_readme) and $(sample_license)',$(done))
 
-.PHONY: clean-sample
+.PHONY: clean-sample ###
 clean-sample: clean-sample-code clean-sample-aux
 
 module ?= $(package)
@@ -306,7 +309,7 @@ unittest: development
 mypy_module := mypy --pretty
 
 ifdef should_generate_report
-	mypy_module += --xml-report=test-results/mypy/results.xml
+	mypy_module += --junit-xml=test-results/mypy/results.xml
 endif
 
 mypy_target := $(src_dir)
@@ -353,11 +356,11 @@ coverage_dir := .coverage
 
 .PHONY: coverage ### evaluate test coverage
 coverage: development
-	@$(python) -m $(coverage_module)
 	@$(call add_gitignore,$(coverage_dir))
+	@$(python) -m $(coverage_module)
 	@$(call log,'test coverage',$(done))
 
-.PHONY: clean-coverage
+.PHONY: clean-coverage ###
 clean-coverage:
 	@rm -rf $(coverage_dir)
 	@$(call del_gitignore,$(coverage_dir))
@@ -430,7 +433,7 @@ $(ipython):
 jupyter := $(venv)/bin/jupyter
 .PHONY: run-jupyter ### virtual env jupyter server
 run-jupyter: $(jupyter)
-	 $< notebook
+	$< notebook
 
 $(jupyter): $(python)
 	@$(pip) install notebook > /dev/null

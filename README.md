@@ -18,7 +18,7 @@ The makefiles not dedicated to any particular language are:
 - `interpreter.mk`: use as starting point for interpretive languages,
 - `template.mk`: use as starting point for interpretive languages,
 
-### readme.md
+### readme
 
 Markdown readme for projects.
 
@@ -36,3 +36,7 @@ Markdown readme for projects.
 
 - [makeareadme](https://www.makeareadme.com/)
 - [markdown syntax](https://markdownguide.offshoot.io/basic-syntax/)
+
+## License
+
+[MIT](LICENSE)

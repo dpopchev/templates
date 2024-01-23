@@ -178,12 +178,13 @@ $(sample_tests): | $(tests_dir)
 	@$(call log,'install sample $@',$(done))
 
 $(sample_readme):
-	@echo '# $(package))' >> $@
+	@echo '# $(package)' >> $@
 	@echo 'Elevator pitch.' >> $@
 	@echo '## Install' >> $@
 	@echo '```' >> $@
 	@echo 'git clone --depth 1 <URL>' >> $@
 	@echo 'cd $(subst _,-,$(package))' >> $@
+	@echo 'make development' >> $@
 	@echo 'make check' >> $@
 	@echo '```' >> $@
 	@echo 'If more context is needed then rename section to `Installation`.' >> $@
@@ -192,6 +193,10 @@ $(sample_readme):
 	@echo 'Place examples with expected output.' >> $@
 	@echo 'Start with `Setup` subsection for configuration.' >> $@
 	@echo 'Break intu sub-...subsections using scenario/feature names.' >> $@
+	@echo '## Acknowledgment' >> $@
+	@echo '- [makeareadme](https://www.makeareadme.com/)' >> $@
+	@echo '## License' >> $@
+	@echo '[MIT](LICENSE)' >> $@
 	@$(call log,'install sample $@',$(done))
 
 $(sample_license):
