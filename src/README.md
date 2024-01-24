@@ -26,3 +26,7 @@ Break intu sub-...subsections using scenario/feature names.
 ## Acknowledgment
 
 - [makeareadme](https://www.makeareadme.com/)
+
+## License
+
+[MIT License](https://choosealicense.com/licenses/mit/)
