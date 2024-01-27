@@ -20,9 +20,10 @@ inspect-%: FORCE
 # standard status messages to be used for logging;
 # length is fixed to 4 charters
 TERM ?=
-done := done
-fail := fail
-info := info
+donestr := done
+failstr := fail
+infostr := info
+warnstr := warn
 
 # justify stdout log message using terminal screen size, if available
 # otherwise use predefined values
@@ -46,13 +47,14 @@ if [ -e .gitignore ]; then \
 	fi
 endef
 
+stamp_suffix := stamp
 stamp_dir := .stamps
 
 $(stamp_dir):
 	@$(call add_gitignore,$@)
 	@mkdir -p $@
 
-.PHONY: clean-stampdir
+.PHONY: clean-stampdir ### reset operation tracking
 clean-stampdir:
 	@rm -rf $(stamp_dir)
 	@$(call del_gitignore,$(stamp_dir))
@@ -73,29 +75,29 @@ build-object: build/build.o
 
 build/build.o: | $(build_dir)
 	@touch $@
-	@$(call log,'built object: $(notdir $@)',$(done))
+	@$(call log,'built object: $(notdir $@)',$(donestr))
 
 .PHONY: clean-build ###
 clean-build:
 	@rm -rf $(build_dir)
 	@$(call del_gitignore,$(build_dir))
-	@$(call log,'$@',$(done))
+	@$(call log,'$@',$(donestr))
 
 .PHONY: build-stamped ### recipe using stamp idiom
-build-stamped: $(stamp_dir)/stamped.stamp
+build-stamped: $(stamp_dir)/stamped.$(stamp_suffix)
 
-$(stamp_dir)/stamped.stamp: | $(stamp_dir)
+$(stamp_dir)/stamped.$(stamp_suffix): | $(stamp_dir)
 	@touch $@
-	@$(call log,'making a build using stamp idiom',$(done))
+	@$(call log,'making a build using stamp idiom',$(donestr))
 
 .PHONY: recipe ### recipe depending on stamped built
 recipe:
-	@if [ ! -e $(stamp_dir)/stamped.stamp ]; then \
+	@if [ ! -e $(stamp_dir)/stamped.$(stamp_suffix) ]; then \
 		echo 'Required build-stamped recipe not executed yet';\
 		echo 'do: make build-stamped first';\
 		false;\
 	fi
-	@$(call log,'recipe execution',$(done))
+	@$(call log,'recipe execution',$(donestr))
 
 module ?= module
 args ?= ''
