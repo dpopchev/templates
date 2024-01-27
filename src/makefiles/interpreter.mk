@@ -47,6 +47,7 @@ if [ -e .gitignore ]; then \
 	fi
 endef
 
+stamp_suffix := stamp
 stamp_dir := .stamps
 
 $(stamp_dir):
@@ -90,7 +91,7 @@ clean-venv: clean-requirements
 	@$(call log,'$@',$(donestr))
 
 requirements := requirements
-requirements_stamp := $(stamp_dir)/$(requirements).stamp
+requirements_stamp := $(stamp_dir)/$(requirements).$(stamp_suffix)
 
 .PHONY: install-requirements
 install-requirements: $(requirements_stamp)
@@ -134,7 +135,7 @@ venv:
 development: setup install-package
 
 packagerc := packagerc
-package_stamp := $(stamp_dir)/$(packagerc).stamp
+package_stamp := $(stamp_dir)/$(packagerc).$(stamp_suffix)
 .PHONY: install-package
 install-package: $(package_stamp)
 
