@@ -20,9 +20,10 @@ inspect-%: FORCE
 # standard status messages to be used for logging;
 # length is fixed to 4 charters
 TERM ?=
-done := done
-fail := fail
-info := info
+donestr := done
+failstr := fail
+infostr := info
+warnstr := warn
 
 # justify stdout log message using terminal screen size, if available
 # otherwise use predefined values
@@ -80,13 +81,13 @@ $(venv_intrpr):
 	@echo 'Recipe to create project dedicated namespace'
 	@echo 'aka virtual environment'
 	@$(call add_gitignore,$(venv))
-	@$(call log,'install venv using seed $(venv_seed)',$(done))
+	@$(call log,'install venv using seed $(venv_seed)',$(donestr))
 
 .PHONY: clean-venv
 clean-venv: clean-requirements
 	@echo 'Recipie to remove local namespace'
 	@$(call del_gitignore,$(venv))
-	@$(call log,'$@',$(done))
+	@$(call log,'$@',$(donestr))
 
 requirements := requirements
 requirements_stamp := $(stamp_dir)/$(requirements).stamp
@@ -98,7 +99,7 @@ $(requirements_stamp): $(requirements) $(venv_intrpr) | $(stamp_dir)
 	@echo 'Recipe to install development package requirements'
 	@sort --unique --output $<{,}
 	@touch $@
-	@$(call log,'install project development requirements',$(done))
+	@$(call log,'install project development requirements',$(donestr))
 
 $(requirements):
 	@echo 'Common requirements list'
@@ -114,7 +115,7 @@ uninstall-requirements:
 		echo 'Recipe for uninstalling requirements'\
 	fi
 	@rm -f $(requirements_stamp)
-	@$(call log,'uninstall maintenance requirements','$(done)')
+	@$(call log,'uninstall maintenance requirements','$(donestr)')
 
 .PHONY: clean-requirements
 clean-requirements:
@@ -140,7 +141,7 @@ install-package: $(package_stamp)
 $(package_stamp): $(venv_intrpr) $(packagerc) | $(src_dir) $(stamp_dir)
 	@echo 'Recipe to install package named $(package) into the local namespace'
 	@touch $@
-	@$(call log,'$(package) installed into venv',$(done))
+	@$(call log,'$(package) installed into venv',$(donestr))
 
 $(packagerc):
 	@echo 'Recipe common package meta data'
@@ -154,7 +155,7 @@ uninstall-package:
 	fi
 	@echo 'Recipe to uninstall package from local namespace'
 	@rm -rf $(package_stamp)
-	@$(call log,'package uninstalled from venv',$(done))
+	@$(call log,'package uninstalled from venv',$(donestr))
 
 .PHONY: clean-package
 clean-package:
@@ -171,11 +172,11 @@ sample: $(sample_readme) $(sample_license)
 
 $(sample_package): | $(src_dir)
 	@echo 'Sample package implementation'
-	@$(call log,'install sample $@',$(done))
+	@$(call log,'install sample $@',$(donestr))
 
 $(sample_tests): | $(tests_dir)
 	@echo 'Sample unittest'
-	@$(call log,'install sample $@',$(done))
+	@$(call log,'install sample $@',$(donestr))
 
 $(sample_readme):
 	@echo '# $(package)' >> $@
@@ -197,21 +198,21 @@ $(sample_readme):
 	@echo '- [makeareadme](https://www.makeareadme.com/)' >> $@
 	@echo '## License' >> $@
 	@echo '[MIT](LICENSE)' >> $@
-	@$(call log,'install sample $@',$(done))
+	@$(call log,'install sample $@',$(donestr))
 
 $(sample_license):
 	@echo 'MIT License' >> $@
-	@$(call log,'install sample $@',$(done))
+	@$(call log,'install sample $@',$(donestr))
 
 .PHONY: clean-sample-code
 clean-sample-code:
 	@rm -rf $(sample_package) $(sample_tests)
-	@$(call log,'clean $(sample_package) and $(sample_tests)',$(done))
+	@$(call log,'clean $(sample_package) and $(sample_tests)',$(donestr))
 
 .PHONY: clean-sample-aux
 clean-sample-aux:
 	@rm -rf $(sample_readme) $(sample_license)
-	@$(call log,'clean $(sample_readme) and $(sample_license)',$(done))
+	@$(call log,'clean $(sample_readme) and $(sample_license)',$(donestr))
 
 .PHONY: clean-sample
 clean-sample: clean-sample-code clean-sample-aux
@@ -246,7 +247,7 @@ endif
 .PHONY: doctest ### run doc tests on particular <module> or all under src/
 doctest: development
 	@echo 'Run documentation test found in target $(doctest_targert)'
-	@$(call log,'doctests',$(done))
+	@$(call log,'doctests',$(donestr))
 
 unittest_module :=
 
@@ -263,7 +264,7 @@ endif
 .PHONY: unittest ### run unittest on particular <module> or all under tests/
 unittest: development
 	@echo 'Run unittest found in target $(unittest_target)'
-	@$(call log,'unittests',$(done))
+	@$(call log,'unittests',$(donestr))
 
 lint_module :=
 
@@ -279,7 +280,7 @@ endif
 .PHONY: lint ### run lint on particular <module> or all under src/
 lint: development
 	@echo 'Run lint on $(lint_target)'
-	@$(call log,'lint',$(done))
+	@$(call log,'lint',$(donestr))
 
 coverage_module :=
 
@@ -290,7 +291,7 @@ endif
 .PHONY: coverage ### evaluate test coverage
 coverage: development
 	@echo 'Evaluate test coverage'
-	@$(call log,'test coverage',$(done))
+	@$(call log,'test coverage',$(donestr))
 
 .PHONY: tests-structure ### make dir for every module under src
 tests-structure:
@@ -304,25 +305,25 @@ format:
 dist: development test
 	@echo 'Make distribution package'
 	@$(call add_gitignore,$(dist_dir))
-	@$(call log,'creating distribution package into $(dist_dir)',$(done))
+	@$(call log,'creating distribution package into $(dist_dir)',$(donestr))
 
 .PHONY: distclean
 distclean:
 	@$(call del_gitignore,$(dist_dir))
 	@rm -rf $(dist_dir)
-	@$(call log,'clean up distribution package $(dist_dir)',$(done))
+	@$(call log,'clean up distribution package $(dist_dir)',$(donestr))
 
 .PHONY: TAGS ### create tags file
 TAGS:
 	@echo 'Make tags file'
 	@$(call add_gitignore,tags)
-	@$(call log,'creating tags file',$(done))
+	@$(call log,'creating tags file',$(donestr))
 
 .PHONY: clean-TAGS
 clean-TAGS:
 	@rm --force tags
 	@$(call del_gitignore,tags)
-	@$(call log,'cleaning tags file',$(done))
+	@$(call log,'cleaning tags file',$(donestr))
 
 .PHONY: clean
 clean: clean-package clean-venv clean-stampdir clean-sample-code
