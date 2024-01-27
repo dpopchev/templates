@@ -20,9 +20,10 @@ inspect-%: FORCE
 # standard status messages to be used for logging;
 # length is fixed to 4 charters
 TERM ?=
-done := done
-fail := fail
-info := info
+donestr := done
+failstr := fail
+infostr := info
+warnstr := warn
 
 # justify stdout log message using terminal screen size, if available
 # otherwise use predefined values
@@ -46,6 +47,7 @@ if [ -e .gitignore ]; then \
 fi
 endef
 
+stamp_suffix := stamp
 stamp_dir := .stamps
 
 $(stamp_dir):
@@ -82,13 +84,13 @@ $(python):
 	@$(pip) install --upgrade build > /dev/null
 	@$(call add_gitignore,$(venv))
 	@$(call add_gitignore,__pycache__)
-	@$(call log,'install venv using seed $(pyseed)',$(done))
+	@$(call log,'install venv using seed $(pyseed)',$(donestr))
 
 .PHONY: clean-venv ###
 clean-venv: clean-requirements
 	@rm -rf $(venv)
 	@$(call del_gitignore,$(venv))
-	@$(call log,'$@',$(done))
+	@$(call log,'$@',$(donestr))
 
 requirements := requirements.txt
 requirements_stamp := $(stamp_dir)/$(requirements).stamp
@@ -100,7 +102,7 @@ $(requirements_stamp): $(requirements) $(python) | $(stamp_dir)
 	@$(pip) install --upgrade --requirement $< > /dev/null
 	@sort --unique --output $<{,}
 	@touch $@
-	@$(call log,'install project development requirements',$(done))
+	@$(call log,'install project development requirements',$(donestr))
 
 $(requirements):
 	@echo "pytest" >> $@
@@ -125,7 +127,7 @@ uninstall-requirements:
 		$(pip) uninstall --requirement $(requirements) --yes > /dev/null;\
 	fi
 	@rm -f $(requirements_stamp)
-	@$(call log,'uninstall maintenance requirements','$(done)')
+	@$(call log,'uninstall maintenance requirements','$(donestr)')
 
 .PHONY: clean-requirements ###
 clean-requirements:
@@ -160,7 +162,7 @@ $(package_stamp): $(python) $(packagerc) | $(src_dir) $(stamp_dir)
 	@$(pip) install --force-reinstall --editable . > /dev/null
 	@$(call add_gitignore,$(package_egg))
 	@touch $@
-	@$(call log,'$(package) installed into venv',$(done))
+	@$(call log,'$(package) installed into venv',$(donestr))
 
 $(packagerc):
 	@echo '[build-system]' >> $@
@@ -183,7 +185,7 @@ uninstall-package:
 	@$(pip) uninstall $(package) --yes > /dev/null
 	@rm -rf $(package_stamp) $(src_dir)/$(package_egg)
 	@$(call del_gitignore,$(package_egg))
-	@$(call log,'package uninstalled from venv',$(done))
+	@$(call log,'package uninstalled from venv',$(donestr))
 
 .PHONY: clean-package ###
 clean-package:
@@ -201,14 +203,14 @@ sample: $(sample_readme) $(sample_license)
 
 $(sample_package): | $(src_dir)
 	@echo "def sample(): return 0" >> $@
-	@$(call log,'install sample $@',$(done))
+	@$(call log,'install sample $@',$(donestr))
 
 $(sample_tests): | $(tests_dir)
 	@echo "import pytest" >> $@
 	@echo "from $(basename $(notdir $(sample_package))) import sample" >> $@
 	@echo "def test_scenario_1(): assert sample() == 0" >> $@
 	@echo "def test_scenario_2(): assert not sample() != 0" >> $@
-	@$(call log,'install sample $@',$(done))
+	@$(call log,'install sample $@',$(donestr))
 
 $(sample_readme):
 	@echo '# $(package)' >> $@
@@ -230,22 +232,22 @@ $(sample_readme):
 	@echo '- [makeareadme](https://www.makeareadme.com/)' >> $@
 	@echo '## License' >> $@
 	@echo '[MIT](LICENSE)' >> $@
-	@$(call log,'install sample $@',$(done))
+	@$(call log,'install sample $@',$(donestr))
 
 $(sample_license):
 	@echo 'MIT License' >> $@
 	@echo '[get the text](https://choosealicense.com/licenses/mit/)' >> $@
-	@$(call log,'install sample $@',$(done))
+	@$(call log,'install sample $@',$(donestr))
 
 .PHONY: clean-sample-code ### remove sample_* files
 clean-sample-code:
 	@rm -rf $(sample_package) $(sample_tests)
-	@$(call log,'clean $(sample_package) and $(sample_tests)',$(done))
+	@$(call log,'clean $(sample_package) and $(sample_tests)',$(donestr))
 
 .PHONY: clean-sample-aux ### remove sample auxiliary files
 clean-sample-aux:
 	@rm -rf $(sample_readme) $(sample_license)
-	@$(call log,'clean $(sample_readme) and $(sample_license)',$(done))
+	@$(call log,'clean $(sample_readme) and $(sample_license)',$(donestr))
 
 .PHONY: clean-sample ###
 clean-sample: clean-sample-code clean-sample-aux
@@ -284,7 +286,7 @@ endif
 .PHONY: doctest ### run doc tests on particular <module> or all under src/
 doctest: development
 	@$(python) -m $(doctest_module) $(doctest_target) || ([ $$? = 5 ] && exit 0 || exit $$?)
-	@$(call log,'doctests',$(done))
+	@$(call log,'doctests',$(donestr))
 
 unittest_module := pytest
 unittest_module += --quiet
@@ -304,7 +306,7 @@ endif
 .PHONY: unittest ### run unittest on particular <module> or all under tests/
 unittest: development
 	@$(python) -m $(unittest_module) $(unittest_target)
-	@$(call log,'unittests',$(done))
+	@$(call log,'unittests',$(donestr))
 
 mypy_module := mypy --pretty
 
@@ -320,7 +322,7 @@ endif
 .PHONY: mypy ### run mypy on particular <module> or all under src/
 mypy: development
 	@$(python) -m $(mypy_module) $(mypy_target)
-	@$(call log,'mypy',$(done))
+	@$(call log,'mypy',$(donestr))
 
 lint_module := pylint --fail-under=5.0
 
@@ -336,7 +338,7 @@ endif
 .PHONY: lint ### run lint on particular <module> or all under src/
 lint: development
 	@$(python) -m $(lint_module) $(lint_target)
-	@$(call log,'lint',$(done))
+	@$(call log,'lint',$(donestr))
 
 coverage_module := pytest
 coverage_module += --cov=$(src_dir)
@@ -358,7 +360,7 @@ coverage_dir := .coverage
 coverage: development
 	@$(call add_gitignore,$(coverage_dir))
 	@$(python) -m $(coverage_module)
-	@$(call log,'test coverage',$(done))
+	@$(call log,'test coverage',$(donestr))
 
 .PHONY: clean-coverage ###
 clean-coverage:
@@ -407,19 +409,19 @@ endif
 ifeq ($(module),$(package))
 	@git add . && git commit -m 'autoformat commit'
 endif
-	@$(call log,'auto formatting',$(done))
+	@$(call log,'auto formatting',$(donestr))
 
 .PHONY: dist ### create distribution files
 dist: development test
 	@$(call add_gitignore,$(dist_dir))
 	@$(python) -m build > /dev/null
-	@$(call log,'creating distribution package into $(dist_dir)',$(done))
+	@$(call log,'creating distribution package into $(dist_dir)',$(donestr))
 
 .PHONY: distclean ###
 distclean:
 	@$(call del_gitignore,$(dist_dir))
 	@rm -rf $(dist_dir)
-	@$(call log,'clean up distribution package $(dist_dir)',$(done))
+	@$(call log,'clean up distribution package $(dist_dir)',$(donestr))
 
 ipython := $(venv)/bin/ipython
 .PHONY: run-ipython ### virtual env ipython
@@ -428,7 +430,7 @@ run-ipython: $(ipython)
 
 $(ipython):
 	@$(pip) install ipython > /dev/null
-	@$(call log,'install ipython into virtual environment',$(done))
+	@$(call log,'install ipython into virtual environment',$(donestr))
 
 jupyter := $(venv)/bin/jupyter
 .PHONY: run-jupyter ### virtual env jupyter server
@@ -437,19 +439,19 @@ run-jupyter: $(jupyter)
 
 $(jupyter): $(python)
 	@$(pip) install notebook > /dev/null
-	@$(call log,'install jupyter into virtual environment',$(done))
+	@$(call log,'install jupyter into virtual environment',$(donestr))
 
 .PHONY: TAGS ### create tags file
 TAGS:
 	@$(call add_gitignore,tags)
 	@ctags --languages=python --recurse
-	@$(call log,'creating tags file',$(done))
+	@$(call log,'creating tags file',$(donestr))
 
 .PHONY: clean-TAGS
 clean-TAGS:
 	@rm --force tags
 	@$(call del_gitignore,tags)
-	@$(call log,'cleaning tags file',$(done))
+	@$(call log,'cleaning tags file',$(donestr))
 
 .PHONY: clean
 clean: clean-package clean-venv clean-stampdir clean-sample-code
