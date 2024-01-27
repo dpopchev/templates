@@ -93,7 +93,7 @@ clean-venv: clean-requirements
 	@$(call log,'$@',$(donestr))
 
 requirements := requirements.txt
-requirements_stamp := $(stamp_dir)/$(requirements).stamp
+requirements_stamp := $(stamp_dir)/$(requirements).$(stamp_suffix)
 
 .PHONY: install-requirements ### install project development requirements
 install-requirements: $(requirements_stamp)
@@ -152,7 +152,7 @@ venv:
 development: setup install-package
 
 packagerc := pyproject.toml
-package_stamp := $(stamp_dir)/$(packagerc).stamp
+package_stamp := $(stamp_dir)/$(packagerc).$(stamp_suffix)
 package_egg := $(package).egg-info
 
 .PHONY: install-package ###
