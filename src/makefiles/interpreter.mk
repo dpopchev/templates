@@ -54,7 +54,7 @@ $(stamp_dir):
 	@$(call add_gitignore,$@)
 	@mkdir -p $@
 
-.PHONY: clean-stampdir
+.PHONY: clean-stampdir ### reset operation tracking
 clean-stampdir:
 	@rm -rf $(stamp_dir)
 	@$(call del_gitignore,$(stamp_dir))
