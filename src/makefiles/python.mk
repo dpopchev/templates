@@ -438,7 +438,7 @@ run-jupyter: $(jupyter)
 	$< notebook
 
 $(jupyter): $(python)
-	@$(pip) install notebook > /dev/null
+	@$(pip) install notebook nb_mypy > /dev/null
 	@$(call log,'install jupyter into virtual environment',$(donestr))
 
 .PHONY: TAGS ### create tags file
