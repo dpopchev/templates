@@ -387,7 +387,7 @@ formatter_module_import_sort += --atomic
 formatter_module_add_trailing_comma := add_trailing_comma
 formatter_module_add_trailing_comma += --exit-zero-even-if-changed
 
-pyfiles:=$(shell find $(src_dir)/ $(tests_dir)/ -type f -name '*.py' &> /dev/null)
+pyfiles:=$(shell find $(src_dir)/ $(tests_dir)/ -type f -name '*.py')
 ifneq ($(module),$(package))
 	formatter_module_pep8 += $(module)
 	formatter_module_import_sort += $(module)
