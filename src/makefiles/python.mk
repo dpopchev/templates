@@ -407,7 +407,7 @@ endif
 	@$(python) -m $(formatter_module_import_sort)
 	@$(python) -m $(formatter_module_add_trailing_comma)
 ifeq ($(module),$(package))
-	@git add . && git commit -m 'style: make format ran on whole codebase'
+	@git add . && git commit -m 'style: make format codebase'
 endif
 	@$(call log,'auto formatting',$(donestr))
 
