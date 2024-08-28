@@ -443,13 +443,23 @@ jupyter_extensions := nb_mypy
 jupyter_extensions += jupyterlab-vim
 jupyter_extensions += jupytext
 jupytextrc := jupytext.toml
+jupyter_pairs_dir := notebook_pairs
+ipynb_dir := $(jupyter_pairs_dir)/ipynbs
+py_dir := $(jupyter_pairs_dir)/pys
 
-$(jupyter): $(python) | $(jupytextrc)
+$(ipynb_dir) $(py_dir):
+	mkdir -p $@
+
+$(jupyter): $(python) | $(jupytextrc) $(ipynb_dir) $(py_dir)
+	@$(call add_gitignore,.ipynb_checkpoints)
+	@$(call add_gitignore,.ipynb)
 	@$(pip) install notebook $(jupyter_extensions) > /dev/null
 	@$(call log,'install jupyter into virtual environment',$(donestr))
 
 $(jupytextrc):
-	@echo 'formats = "ipynb,py:percent"' >> $@
+	@echo '[formats]' >> $@
+	@echo '"$(ipynb_dir)" = "ipynb"' >> $@
+	@echo '"$(py_dir)" = "py:percent"' >> $@
 
 .PHONY: TAGS ### create tags file
 TAGS:
