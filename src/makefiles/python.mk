@@ -200,6 +200,7 @@ sample_license := LICENSE
 .PHONY: sample ### sample module to use as structure and example
 sample: $(sample_package) $(sample_tests)
 sample: $(sample_readme) $(sample_license)
+sample: $(packagerc)
 
 $(sample_package): | $(src_dir)
 	@echo "def sample(): return 0" >> $@
@@ -433,13 +434,22 @@ $(ipython):
 	@$(call log,'install ipython into virtual environment',$(donestr))
 
 jupyter := $(venv)/bin/jupyter
+
 .PHONY: run-jupyter ### virtual env jupyter server
 run-jupyter: $(jupyter)
-	$< notebook
+	$< lab
 
-$(jupyter): $(python)
-	@$(pip) install notebook nb_mypy > /dev/null
+jupyter_extensions := nb_mypy
+jupyter_extensions += jupyterlab-vim
+jupyter_extensions += jupytext
+jupytextrc := jupytext.toml
+
+$(jupyter): $(python) | $(jupytextrc)
+	@$(pip) install notebook $(jupyter_extensions) > /dev/null
 	@$(call log,'install jupyter into virtual environment',$(donestr))
+
+$(jupytextrc):
+	@echo 'formats = "ipynb,py:percent"' >> $@
 
 .PHONY: TAGS ### create tags file
 TAGS:
