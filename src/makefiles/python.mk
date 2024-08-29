@@ -172,7 +172,7 @@ $(packagerc):
 	@echo '[project]' >> $@
 	@echo 'name = "$(package)"' >> $@
 	@echo 'version = "0.0.1"' >> $@
-	@echo 'requires-python = ">=$(shell $(python) --version | grep -oP "\d.\d+")"' >> $@
+	@echo 'requires-python = ">=$(shell ($(python) --version 2> /dev/null || echo "3.10") | grep -oP "\d.\d+")"' >> $@
 	@echo 'dependencies = []' >> $@
 
 .PHONY: uninstall-package ### uninstall package from venv
