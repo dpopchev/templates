@@ -452,14 +452,14 @@ $(ipynb_dir) $(py_dir):
 
 $(jupyter): $(python) | $(jupytextrc) $(ipynb_dir) $(py_dir)
 	@$(call add_gitignore,.ipynb_checkpoints)
-	@$(call add_gitignore,.ipynb)
+	@$(call add_gitignore,"$(ipynb_dir)/")
 	@$(pip) install notebook $(jupyter_extensions) > /dev/null
 	@$(call log,'install jupyter into virtual environment',$(donestr))
 
 $(jupytextrc):
 	@echo '[formats]' >> $@
-	@echo '"$(ipynb_dir)" = "ipynb"' >> $@
-	@echo '"$(py_dir)" = "py:percent"' >> $@
+	@echo '"$(ipynb_dir)/" = "ipynb"' >> $@
+	@echo '"$(py_dir)/" = "py:percent"' >> $@
 
 .PHONY: TAGS ### create tags file
 TAGS:
