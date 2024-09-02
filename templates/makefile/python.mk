@@ -174,6 +174,10 @@ $(packagerc):
 	@echo 'version = "0.0.1"' >> $@
 	@echo 'requires-python = ">=$(shell ($(python) --version 2> /dev/null || echo "3.10") | grep -oP "\d.\d+")"' >> $@
 	@echo 'dependencies = []' >> $@
+	@echo '[tool.setuptools.package-data]' >> $@
+	@echo '"$(package)" = ["py.typed"]' >> $@
+	@echo '[tool.setuptools.packages.find]' >> $@
+	@echo 'where = ["src"]' >> $@
 
 .PHONY: uninstall-package ### uninstall package from venv
 uninstall-package:
@@ -193,6 +197,8 @@ clean-package:
 	@$(call del_gitignore,$(package_egg))
 
 sample_package := $(src_dir)/sample_$(package).py
+sample_pytyped_marker := $(src_dir)/py.typed
+sample_init := $(src_dir)/__init__.py
 sample_tests := $(tests_dir)/test_sample_$(package).py
 sample_readme := README.md
 sample_license := LICENSE
@@ -200,7 +206,11 @@ sample_license := LICENSE
 .PHONY: sample ### sample module to use as structure and example
 sample: $(sample_package) $(sample_tests)
 sample: $(sample_readme) $(sample_license)
+sample: $(sample_init) $(sample_pytyped_marker)
 sample: $(packagerc)
+
+$(sample_init) $(sample_pytyped_marker):
+	@touch $@
 
 $(sample_package): | $(src_dir)
 	@echo "def sample(): return 0" >> $@
