@@ -108,6 +108,8 @@ $(requirements):
 	@echo "pytest" >> $@
 	@echo "pytest-cov" >> $@
 	@echo "pytest-mock" >> $@
+	@echo "pytest-datafiles" >> $@
+	@echo "pytest-datadir" >> $@
 	@echo "pylint" >> $@
 	@echo "pylint-junit" >> $@
 	@echo "autopep8" >> $@
