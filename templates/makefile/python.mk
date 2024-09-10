@@ -198,10 +198,12 @@ clean-package:
 	@rm -rf $(package_stamp) $(src_dir)/$(package_egg)
 	@$(call del_gitignore,$(package_egg))
 
-sample_package := $(src_dir)/sample_$(package).py
-sample_pytyped_marker := $(src_dir)/py.typed
-sample_init := $(src_dir)/__init__.py
-sample_tests := $(tests_dir)/test_sample_$(package).py
+sample_package := $(src_dir)/$(package)
+sample_module := $(sample_package)/sample.py
+sample_tests := $(tests_dir)/sample
+sample_zero_test := $(sample_tests)/test_zero_function.py
+sample_pytyped_marker := $(sample_package)/py.typed
+sample_init := $(sample_package)/__init__.py
 sample_readme := README.md
 sample_license := LICENSE
 
@@ -209,24 +211,26 @@ sample_license := LICENSE
 sample: $(sample_package) $(sample_tests)
 sample: $(sample_readme) $(sample_license)
 sample: $(sample_init) $(sample_pytyped_marker)
+sample: $(sample_module) $(sample_zero_test)
 sample: $(packagerc)
+
+$(sample_package) $(sample_tests):
+	@mkdir --parents $@
 
 $(sample_init) $(sample_pytyped_marker):
 	@touch $@
 
-$(sample_package): | $(src_dir)
-	@echo "def sample(): return 0" >> $@
+$(sample_module): | $(sample_package)
+	@echo "def sample() -> int: return 0" > $@
 	@$(call log,'install sample $@',$(donestr))
 
-$(sample_tests): | $(tests_dir)
-	@echo "import pytest" >> $@
-	@echo "from $(basename $(notdir $(sample_package))) import sample" >> $@
+$(sample_zero_test): | $(sample_tests)
+	@echo "from $(basename $(notdir $(sample_package))).sample import sample" > $@
 	@echo "def test_scenario_1(): assert sample() == 0" >> $@
-	@echo "def test_scenario_2(): assert not sample() != 0" >> $@
 	@$(call log,'install sample $@',$(donestr))
 
 $(sample_readme):
-	@echo '# $(package)' >> $@
+	@echo '# $(package)' > $@
 	@echo 'Elevator pitch.' >> $@
 	@echo '## Install' >> $@
 	@echo '```' >> $@
@@ -248,13 +252,13 @@ $(sample_readme):
 	@$(call log,'install sample $@',$(donestr))
 
 $(sample_license):
-	@echo 'MIT License' >> $@
+	@echo 'MIT License' > $@
 	@echo '[get the text](https://choosealicense.com/licenses/mit/)' >> $@
 	@$(call log,'install sample $@',$(donestr))
 
 .PHONY: clean-sample-code ### remove sample_* files
 clean-sample-code:
-	@rm -rf $(sample_package) $(sample_tests)
+	@rm -rf $(sample_module) $(sample_tests)
 	@$(call log,'clean $(sample_package) and $(sample_tests)',$(donestr))
 
 .PHONY: clean-sample-aux ### remove sample auxiliary files
@@ -400,7 +404,7 @@ formatter_module_import_sort += --atomic
 formatter_module_add_trailing_comma := add_trailing_comma
 formatter_module_add_trailing_comma += --exit-zero-even-if-changed
 
-pyfiles:=$(shell find $(src_dir)/ $(tests_dir)/ -type f -name '*.py')
+pyfiles:=$(shell find $(src_dir)/ $(tests_dir)/ -type f -name '*.py' 2> /dev/null)
 ifneq ($(module),$(package))
 	formatter_module_pep8 += $(module)
 	formatter_module_import_sort += $(module)
