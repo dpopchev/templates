@@ -87,7 +87,7 @@ $(python):
 	@$(call log,'install venv using seed $(pyseed)',$(donestr))
 
 .PHONY: clean-venv ###
-clean-venv: clean-requirements
+clean-venv: clean-requirements clean-package
 	@rm -rf $(venv)
 	@$(call del_gitignore,$(venv))
 	@$(call log,'$@',$(donestr))
@@ -320,6 +320,10 @@ ifneq ($(module),$(package))
 	unittest_target := $(module)
 endif
 
+.PHONY: run-unittest-daemon
+run-unittest-daemon:
+	find $(sample_package) -name '*.py' | entr make unittest
+
 .PHONY: unittest ### run unittest on particular <module> or all under tests/
 unittest: development
 	@$(python) -m $(unittest_module) $(unittest_target)
@@ -489,7 +493,14 @@ clean-TAGS:
 	@$(call del_gitignore,tags)
 	@$(call log,'cleaning tags file',$(donestr))
 
+.PHONY: clean-cache ###
+clean-cache:
+	@find . -name ".ipynb_checkpoints" -type d -exec rm -fr {} +
+	@find . -name "*.pyc" -type f -exec rm -fr {} +
+	@find . -name "__pycache__" -type d -exec rm -fr {} +
+	@rm -rf .mypy_cache
+	@rm -rf .pytest_cache
+
 .PHONY: clean
 clean: clean-package clean-venv clean-stampdir clean-sample-code
-clean: clean-TAGS distclean clean-coverage
-	@rm -rf __pycache__ .pytest_cache
+clean: clean-TAGS distclean clean-coverage clean-cache
