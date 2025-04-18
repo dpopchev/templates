@@ -1,4 +1,5 @@
 MAKEFLAGS += --warn-undefined-variables
+MAKEFLAGS += --check-symlink-times
 
 SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
@@ -32,7 +33,7 @@ if [ ! -z "$(TERM)" ]; then \
 	printf "%-$$(($$(tput cols) - 7))s[%-4s]\n" $(1) $(2);\
 	else \
 	printf "%-73s[%4s] \n" $(1) $(2);\
-fi
+	fi
 endef
 
 define add_gitignore
@@ -44,7 +45,7 @@ define del_gitignore
 if [ -e .gitignore ]; then \
 	sed --in-place '\,$(1),d' .gitignore;\
 	sort --unique --output .gitignore{,};\
-fi
+	fi
 endef
 
 stamp_suffix := stamp
@@ -54,29 +55,38 @@ $(stamp_dir):
 	@$(call add_gitignore,$@)
 	@mkdir -p $@
 
-.PHONY: clean-stampdir ### reset target-less phases tracked with stamps
+.PHONY: clean-stampdir
 clean-stampdir:
 	@rm -rf $(stamp_dir)
 	@$(call del_gitignore,$(stamp_dir))
 
 src_dir := src
 tests_dir := tests
-dist_dir := dist
+build_dir := build
 
 $(src_dir) $(tests_dir):
 	@mkdir -p $@
 
-.PHONY: setup ### install venv and its requirements for package development
-setup: install-venv install-requirements
+$(build_dir):
+	@mkdir -p $@
+	@$(call add_gitignore,$@/)
 
 package := mypackage
 venv := .venv
 pyseed ?= $(shell command -v python3 2> /dev/null)
 python := $(venv)/bin/python
 pip := $(python) -m pip --disable-pip-version-check
+requirements := requirements.txt
+requirements_stamp := $(stamp_dir)/$(requirements).$(stamp_suffix)
 
-.PHONY: install-venv ###
-install-venv: $(python)
+.PHONY: venv ### install and setup virtual python environment
+venv: $(requirements_stamp)
+
+$(requirements_stamp): $(requirements) $(python) | $(stamp_dir)
+	@$(pip) install --upgrade --requirement $< > /dev/null
+	@sort --unique --output $<{,}
+	@touch $@
+	@$(call log,'install venv requirements',$(donestr))
 
 $(python):
 	@$(pyseed) -m venv $(venv)
@@ -84,25 +94,7 @@ $(python):
 	@$(pip) install --upgrade build > /dev/null
 	@$(call add_gitignore,$(venv))
 	@$(call add_gitignore,__pycache__)
-	@$(call log,'install venv using seed $(pyseed)',$(donestr))
-
-.PHONY: clean-venv ###
-clean-venv: clean-requirements clean-package
-	@rm -rf $(venv)
-	@$(call del_gitignore,$(venv))
-	@$(call log,'$@',$(donestr))
-
-requirements := requirements.txt
-requirements_stamp := $(stamp_dir)/$(requirements).$(stamp_suffix)
-
-.PHONY: install-requirements ### install project development requirements
-install-requirements: $(requirements_stamp)
-
-$(requirements_stamp): $(requirements) $(python) | $(stamp_dir)
-	@$(pip) install --upgrade --requirement $< > /dev/null
-	@sort --unique --output $<{,}
-	@touch $@
-	@$(call log,'install project development requirements',$(donestr))
+	@$(call log,'make venv using $(pyseed)',$(donestr))
 
 $(requirements):
 	@echo "pytest" >> $@
@@ -118,116 +110,41 @@ $(requirements):
 	@echo "isort" >> $@
 	@echo "pynvim" >> $@
 
-.PHONY: uninstall-requirements ###
-uninstall-requirements:
-	@if [ ! -e $(requirements_stamp) ]; then\
-		echo 'Misisng installation stamp';\
-		echo 'run make install-requirements';\
-		false;\
-	fi
-	@if [ -e $(requirements) ]; then\
-		$(pip) uninstall --requirement $(requirements) --yes > /dev/null;\
-	fi
-	@rm -f $(requirements_stamp)
-	@$(call log,'uninstall maintenance requirements','$(donestr)')
-
-.PHONY: clean-requirements ###
-clean-requirements:
-	@rm -rf $(requirements_stamp)
-
-.PHONY: venv ### virtual environment help
-venv:
-	@if [ ! -e $(python) ]; then \
-		echo 'No virtual environment found'; \
-		echo 'Run: install-venv or setup'; \
-		false; \
-	fi
-	@echo "Active shell: $$0"
-	@echo "Command to activate virtual environment:"
-	@echo "- bash/zsh: source $(venv)/bin/activate"
-	@echo "- fish: source $(venv)/bin/activate.fish"
-	@echo "- csh/tcsh: source $(venv)/bin/activate.csh"
-	@echo "- PowerShell: $(venv)/bin/Activate.ps1"
-	@echo "Exit: deactivate"
-
-.PHONY: development ### setup and install package in editable mode
-development: setup install-package
+.PHONY: clean-venv ###
+clean-venv:
+	@rm -rf $(venv) $(requirements_stamp)
 
 packagerc := pyproject.toml
-package_stamp := $(stamp_dir)/$(packagerc).$(stamp_suffix)
-package_egg := $(package).egg-info
-
-.PHONY: install-package ###
-install-package: $(package_stamp)
-
-$(package_stamp): $(python) $(packagerc) | $(src_dir) $(stamp_dir)
-	@$(pip) install --force-reinstall --editable . > /dev/null
-	@$(call add_gitignore,$(package_egg))
-	@touch $@
-	@$(call log,'$(package) installed into venv',$(donestr))
-
-$(packagerc):
-	@echo '[build-system]' >> $@
-	@echo 'requires = ["setuptools"]' >> $@
-	@echo 'build-backend = "setuptools.build_meta"' >> $@
-	@echo '' >> $@
-	@echo '[project]' >> $@
-	@echo 'name = "$(package)"' >> $@
-	@echo 'version = "0.0.1"' >> $@
-	@echo 'requires-python = ">=$(shell ($(python) --version 2> /dev/null || echo "3.10") | grep -oP "\d.\d+")"' >> $@
-	@echo 'dependencies = []' >> $@
-	@echo '[tool.setuptools.package-data]' >> $@
-	@echo '"$(package)" = ["py.typed"]' >> $@
-	@echo '[tool.setuptools.packages.find]' >> $@
-	@echo 'where = ["src"]' >> $@
-
-.PHONY: uninstall-package ### uninstall package from venv
-uninstall-package:
-	@if [ ! -e $(package_stamp) ]; then \
-		echo 'Package not installed via current makefile';\
-		echo 'It is not safe to uninstall it';\
-		false;\
-	fi
-	@$(pip) uninstall $(package) --yes > /dev/null
-	@rm -rf $(package_stamp) $(src_dir)/$(package_egg)
-	@$(call del_gitignore,$(package_egg))
-	@$(call log,'package uninstalled from venv',$(donestr))
-
-.PHONY: clean-package ###
-clean-package:
-	@rm -rf $(package_stamp) $(src_dir)/$(package_egg)
-	@$(call del_gitignore,$(package_egg))
-
 sample_package := $(src_dir)/$(package)
 sample_module := $(sample_package)/sample.py
 sample_tests := $(tests_dir)/sample
-sample_zero_test := $(sample_tests)/test_zero_function.py
+sample_module_test := $(sample_tests)/test_zero_function.py
 sample_pytyped_marker := $(sample_package)/py.typed
 sample_init := $(sample_package)/__init__.py
 sample_readme := README.md
 sample_license := LICENSE
 
-.PHONY: sample ### sample module to use as structure and example
-sample: $(sample_package) $(sample_tests)
-sample: $(sample_readme) $(sample_license)
-sample: $(sample_init) $(sample_pytyped_marker)
-sample: $(sample_module) $(sample_zero_test)
-sample: $(packagerc)
+.PHONY: sample-project ### template project structure with simple sample
+sample-project: $(packagerc)
+sample-project: $(sample_module) $(sample_module_test)
+sample-project: $(sample_pytyped_marker) $(sample_init)
+sample-project: $(sample_init) $(sample_readme) $(sample_license)
 
 $(sample_package) $(sample_tests):
 	@mkdir --parents $@
 
-$(sample_init) $(sample_pytyped_marker):
-	@touch $@
-
 $(sample_module): | $(sample_package)
 	@echo "def sample() -> int: return 0" > $@
-	@$(call log,'install sample $@',$(donestr))
+	@$(call log,'make sample $@',$(donestr))
 
-$(sample_zero_test): | $(sample_tests)
+$(sample_module_test): | $(sample_tests)
 	@echo "from $(basename $(notdir $(sample_package))).sample import sample" > $@
 	@echo "def test_scenario_1(): assert sample() == 0" >> $@
-	@$(call log,'install sample $@',$(donestr))
+	@$(call log,'make sample $@',$(donestr))
+
+$(sample_init) $(sample_pytyped_marker): | $(sample_package)
+	@touch $@
+	@$(call log,'make sample $@',$(donestr))
 
 $(sample_readme):
 	@echo '# $(package)' > $@
@@ -249,37 +166,58 @@ $(sample_readme):
 	@echo '- [makeareadme](https://www.makeareadme.com/)' >> $@
 	@echo '## License' >> $@
 	@echo '[MIT](LICENSE)' >> $@
-	@$(call log,'install sample $@',$(donestr))
+	@$(call log,'make sample $@',$(donestr))
 
 $(sample_license):
 	@echo 'MIT License' > $@
 	@echo '[get the text](https://choosealicense.com/licenses/mit/)' >> $@
-	@$(call log,'install sample $@',$(donestr))
+	@$(call log,'make sample $@',$(donestr))
 
-.PHONY: clean-sample-code ### remove sample_* files
+.PHONY: clean-sample-code ### remove sample_* related files
 clean-sample-code:
 	@rm -rf $(sample_module) $(sample_tests)
 	@$(call log,'clean $(sample_package) and $(sample_tests)',$(donestr))
 
-.PHONY: clean-sample-aux ### remove sample auxiliary files
-clean-sample-aux:
-	@rm -rf $(sample_readme) $(sample_license)
-	@$(call log,'clean $(sample_readme) and $(sample_license)',$(donestr))
+package_egg := $(build_dir)/$(package).egg-info
 
-.PHONY: clean-sample ###
-clean-sample: clean-sample-code clean-sample-aux
+.PHONY: development ### make venv and install the package into it
+development: venv $(package_egg)
 
-module ?= $(package)
+$(package_egg): $(packagerc) $(python) | $(build_dir)
+	@$(pip) install --force-reinstall --editable . > /dev/null
+	@$(call log,'$(package) installed into venv',$(donestr))
+
+$(packagerc):
+	@echo '[build-system]' > $@
+	@echo 'requires = ["setuptools"]' >> $@
+	@echo 'build-backend = "setuptools.build_meta"' >> $@
+	@echo '' >> $@
+	@echo '[project]' >> $@
+	@echo 'name = "$(package)"' >> $@
+	@echo 'version = "0.0.1"' >> $@
+	@echo 'requires-python = ">=$(shell ($(python) --version 2> /dev/null || echo "3.10") | grep -oP "\d.\d+")"' >> $@
+	@echo 'dependencies = []' >> $@
+	@echo '[tool.setuptools.package-data]' >> $@
+	@echo '"$(package)" = ["py.typed"]' >> $@
+	@echo '[tool.setuptools.packages.find]' >> $@
+	@echo 'where = ["src"]' >> $@
+	@echo '[tool.distutils.egg_info]' >> $@
+	@echo 'egg_base = "build"' >> $@
+	@$(call log,'make sample $@',$(donestr))
+
+.PHONY: uninstall-package ### uninstall package from venv
+uninstall-package:
+	@$(pip) uninstall $(package) --yes > /dev/null
+	@rm -rf $(package_egg)
+	@$(call del_gitignore,$(package_egg))
+	@$(call log,'package uninstalled from venv',$(donestr))
+
 args ?= ''
-.PHONY: run ### run <module> trough venv, may pass <args>
-run: development
-ifeq ($(module),$(package))
-	@$(python) -m $(module) $(args)
-else
-	@$(python) $(module) $(args)
-endif
+.PHONY: run ### run the package with optional args, e.g. make run args='-h'
+run: setup
+	@$(python) -m $(package) $(args)
 
-.PHONY: check ### test with lint and coverage
+.PHONY: check ### test, lint and coverage
 check: test lint coverage
 
 .PHONY: test ### doctest, unittest and mypy
@@ -290,19 +228,15 @@ doctest_module += --quiet
 doctest_module += -rfE
 doctest_module += --showlocals
 doctest_module += --doctest-modules
+doctest_module += --doctest-continue-on-failure
 
 ifdef should_generate_report
 	doctest_module += --junit-xml=test-results/doctests/results.xml
 endif
 
-doctest_target := $(src_dir)
-ifneq ($(module),$(package))
-	doctest_target := $(module)
-endif
-
-.PHONY: doctest ### run doc tests on particular <module> or all under src/
+.PHONY: doctest ### run doctests
 doctest: development
-	@$(python) -m $(doctest_module) $(doctest_target) || ([ $$? = 5 ] && exit 0 || exit $$?)
+	@$(python) -m $(doctest_module) $(src_dir)/$(package) || ([ $$? = 5 ] && exit 0 || exit $$?)
 	@$(call log,'doctests',$(donestr))
 
 unittest_module := pytest
@@ -314,19 +248,9 @@ ifdef should_generate_report
 	unittest_module += --junit-xml=test-results/unittests/results.xml
 endif
 
-unittest_target := $(tests_dir)
-
-ifneq ($(module),$(package))
-	unittest_target := $(module)
-endif
-
-.PHONY: run-unittest-daemon
-run-unittest-daemon:
-	find $(sample_package) -name '*.py' | entr make unittest
-
-.PHONY: unittest ### run unittest on particular <module> or all under tests/
+.PHONY: unittest ### run unittest
 unittest: development
-	@$(python) -m $(unittest_module) $(unittest_target)
+	@$(python) -m $(unittest_module)
 	@$(call log,'unittests',$(donestr))
 
 mypy_module := mypy --pretty
@@ -335,14 +259,9 @@ ifdef should_generate_report
 	mypy_module += --junit-xml=test-results/mypy/results.xml
 endif
 
-mypy_target := $(src_dir)
-ifneq ($(module),$(package))
-	mypy_target := $(module)
-endif
-
-.PHONY: mypy ### run mypy on particular <module> or all under src/
+.PHONY: mypy ### run mypy
 mypy: development
-	@$(python) -m $(mypy_module) $(mypy_target)
+	@$(python) -m $(mypy_module) $(src_dir)/$(package)
 	@$(call log,'mypy',$(donestr))
 
 lint_module := pylint --fail-under=5.0
@@ -351,14 +270,9 @@ ifdef should_generate_report
 	lint_module += --output-format=pylint_junit.JUnitReporter
 endif
 
-lint_target := $(src_dir)
-ifneq ($(module),$(package))
-	lint_target := $(module)
-endif
-
-.PHONY: lint ### run lint on particular <module> or all under src/
+.PHONY: lint ### run lint
 lint: development
-	@$(python) -m $(lint_module) $(lint_target)
+	@$(python) -m $(lint_module) $(src_dir)/$(package)
 	@$(call log,'lint',$(donestr))
 
 coverage_module := pytest
@@ -383,20 +297,6 @@ coverage: development
 	@$(python) -m $(coverage_module)
 	@$(call log,'test coverage',$(donestr))
 
-.PHONY: clean-coverage ###
-clean-coverage:
-	@rm -rf $(coverage_dir)
-	@$(call del_gitignore,$(coverage_dir))
-
-.PHONY: tests-structure ### make dir for every module under src
-tests-structure:
-	@if [ -d $(src_dir)/$(package) ]; then\
-		find $(src_dir)/$(package) -type f -name '*.py' \
-		| grep -vP '__\w+__\.py' \
-		| sed -rn "s/$(src_dir)\/$(package)/$(tests_dir)/; s/.py//p" \
-		| xargs mkdir --parents;\
-	fi
-
 formatter_module_pep8 := autopep8
 formatter_module_pep8 += --in-place
 formatter_module_pep8 += --aggressive
@@ -409,33 +309,25 @@ formatter_module_add_trailing_comma := add_trailing_comma
 formatter_module_add_trailing_comma += --exit-zero-even-if-changed
 
 pyfiles:=$(shell find $(src_dir)/ $(tests_dir)/ -type f -name '*.py' 2> /dev/null)
-ifneq ($(module),$(package))
-	formatter_module_pep8 += $(module)
-	formatter_module_import_sort += $(module)
-	formatter_module_add_trailing_comma += $(module)
-else
-	formatter_module_pep8 += --recursive $(src_dir)/ $(tests_dir)/
-	formatter_module_import_sort += $(pyfiles)
-	formatter_module_add_trailing_comma += $(pyfiles) &> /dev/null
-endif
+formatter_module_pep8 += --recursive $(src_dir)/ $(tests_dir)/
+formatter_module_import_sort += $(pyfiles)
+formatter_module_add_trailing_comma += $(pyfiles) &> /dev/null
 
-.PHONY: format ### autoformat work dir and auto commit; fails if dirty
+.PHONY: format ### autoformat work dir and commit; fails if dirty
 format:
-ifeq ($(module),$(package))
 	@[[ -z $$(git status --porcelain) ]] || (echo 'clean the dirty working tree'; false;)
-endif
 	@$(python) -m $(formatter_module_pep8)
 	@$(python) -m $(formatter_module_import_sort)
 	@$(python) -m $(formatter_module_add_trailing_comma)
-ifeq ($(module),$(package))
 	@git add . && git commit -m 'style: make format codebase'
-endif
 	@$(call log,'auto formatting',$(donestr))
+
+dist_dir := $(build_dir)/dist
 
 .PHONY: dist ### create distribution files
 dist: development test
 	@$(call add_gitignore,$(dist_dir))
-	@$(python) -m build > /dev/null
+	@$(python) -m build --outdir $(dist_dir) > /dev/null
 	@$(call log,'creating distribution package into $(dist_dir)',$(donestr))
 
 .PHONY: distclean ###
@@ -444,8 +336,12 @@ distclean:
 	@rm -rf $(dist_dir)
 	@$(call log,'clean up distribution package $(dist_dir)',$(donestr))
 
+.PHONY: run-unittest-daemon ### rerun unittest on change of any package module
+run-unittest-daemon: development
+	find $(src_dir)/$(package) -name '*.py' | entr make unittest
+
 ipython := $(venv)/bin/ipython
-.PHONY: run-ipython ### virtual env ipython
+.PHONY: run-ipython ### ipython in venv
 run-ipython: $(ipython)
 	$< --colors Linux
 
@@ -455,7 +351,7 @@ $(ipython):
 
 jupyter := $(venv)/bin/jupyter
 
-.PHONY: run-jupyter ### virtual env jupyter server
+.PHONY: run-jupyter ### jupyter lab in venv
 run-jupyter: $(jupyter)
 	$< lab
 
@@ -481,26 +377,9 @@ $(jupytextrc):
 	@echo '"$(ipynb_dir)/" = "ipynb"' >> $@
 	@echo '"$(py_dir)/" = "py:percent"' >> $@
 
-.PHONY: TAGS ### create tags file
-TAGS:
-	@$(call add_gitignore,tags)
-	@ctags --languages=python --recurse
-	@$(call log,'creating tags file',$(donestr))
-
-.PHONY: clean-TAGS
-clean-TAGS:
-	@rm --force tags
-	@$(call del_gitignore,tags)
-	@$(call log,'cleaning tags file',$(donestr))
-
 .PHONY: clean-cache ###
 clean-cache:
 	@find . -name ".ipynb_checkpoints" -type d -exec rm -fr {} +
 	@find . -name "*.pyc" -type f -exec rm -fr {} +
 	@find . -name "__pycache__" -type d -exec rm -fr {} +
-	@rm -rf .mypy_cache
-	@rm -rf .pytest_cache
-
-.PHONY: clean
-clean: clean-package clean-venv clean-stampdir clean-sample-code
-clean: clean-TAGS distclean clean-coverage clean-cache
+	@rm -rf .mypy_cache .pytest_cache .coverage
