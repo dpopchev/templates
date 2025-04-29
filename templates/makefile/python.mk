@@ -276,10 +276,9 @@ lint: development
 	@$(call log,'lint',$(donestr))
 
 coverage_module := pytest
-coverage_module += --cov=$(src_dir)
+coverage_module += --cov=$(package)
 coverage_module += --cov-branch
 coverage_module += --cov-fail-under=50
-coverage_module += --doctest-modules
 
 ifdef should_generate_report
 	coverage_module += --cov-report=xml:test-results/coverage/report.xml
