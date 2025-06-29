@@ -350,32 +350,41 @@ $(ipython):
 	@$(call log,'install ipython into virtual environment',$(donestr))
 
 jupyter := $(venv)/bin/jupyter
+jupyter_extensions := jupyterlab-vim
+jupyter_extensions += jupyterlab-lsp
+jupyter_extensions += jupytext
+notebooks_dir := notebooks
+
+$(notebooks_dir):
+	@mkdir -p $@
 
 .PHONY: run-jupyter ### jupyter lab in venv
-run-jupyter: $(jupyter)
-	$< lab
+run-jupyter: $(jupyter) | $(notebooks_dir)
+	$< lab $(notebooks_dir)
 
-jupyter_extensions := nb_mypy
-jupyter_extensions += jupyterlab-vim
-jupyter_extensions += jupytext
-jupytextrc := jupytext.toml
-jupyter_pairs_dir := notebook_pairs
-ipynb_dir := $(jupyter_pairs_dir)/ipynbs
-py_dir := $(jupyter_pairs_dir)/pys
-
-$(ipynb_dir) $(py_dir):
-	mkdir -p $@
-
-$(jupyter): $(python) | $(jupytextrc) $(ipynb_dir) $(py_dir)
+$(jupyter): $(python)
 	@$(call add_gitignore,.ipynb_checkpoints)
-	@$(call add_gitignore,"$(ipynb_dir)/")
-	@$(pip) install notebook $(jupyter_extensions) > /dev/null
+	@$(pip) install jupyterlab $(jupyter_extensions) > /dev/null
 	@$(call log,'install jupyter into virtual environment',$(donestr))
 
-$(jupytextrc):
-	@echo '[formats]' >> $@
-	@echo '"$(ipynb_dir)/" = "ipynb"' >> $@
-	@echo '"$(py_dir)/" = "py:percent"' >> $@
+.PHONY: jupyter-lsp-servers ### setup lsp for jupyter trough npm
+jupyter-lsp-servers:
+	@npm install --save-dev pyright
+
+tensorboard := $(venv)/bin/tensorboard
+tensorboard_logs := $(workspace_dir)/tensorboard
+
+.PHONY: run-tensorboard ### tensorboard in venv
+run-tensorboard: $(tensorboard) | $(tensorboard_logs)
+	$< --logdir $(tensorboard_logs)
+
+$(tensorboard_logs):
+	@$(call add_gitignore,"$@/")
+	mkdir -p $@
+
+$(tensorboard): $(python)
+	@$(pip) install tensorboard > /dev/null
+	@$(call log,'install tensorboard into virtual environment',$(donestr))
 
 .PHONY: clean-cache ###
 clean-cache:
