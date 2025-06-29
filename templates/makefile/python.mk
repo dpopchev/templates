@@ -62,13 +62,13 @@ clean-stampdir:
 
 src_dir := src
 tests_dir := tests
-build_dir := workspace
+workspace_dir := workspace
 data_dir := data
 
 $(src_dir) $(tests_dir):
 	@mkdir -p $@
 
-$(build_dir):
+$(workspace_dir):
 	@mkdir -p $@
 	@$(call add_gitignore,$@/)
 
@@ -179,12 +179,12 @@ clean-sample-code:
 	@rm -rf $(sample_module) $(sample_tests)
 	@$(call log,'clean $(sample_package) and $(sample_tests)',$(donestr))
 
-package_egg := $(build_dir)/$(package).egg-info
+package_egg := $(workspace_dir)/$(package).egg-info
 
 .PHONY: development ### make venv and install the package into it
 development: venv $(package_egg)
 
-$(package_egg): $(packagerc) $(python) | $(build_dir)
+$(package_egg): $(packagerc) $(python) | $(workspace_dir)
 	@$(pip) install --force-reinstall --editable . > /dev/null
 	@$(call log,'$(package) installed into venv',$(donestr))
 
@@ -322,7 +322,7 @@ format:
 	@git add . && git commit -m 'style: make format codebase'
 	@$(call log,'auto formatting',$(donestr))
 
-dist_dir := $(build_dir)/dist
+dist_dir := $(workspace_dir)/dist
 
 .PHONY: dist ### create distribution files
 dist: development test
