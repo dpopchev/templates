@@ -62,7 +62,8 @@ clean-stampdir:
 
 src_dir := src
 tests_dir := tests
-build_dir := build
+build_dir := workspace
+data_dir := data
 
 $(src_dir) $(tests_dir):
 	@mkdir -p $@
