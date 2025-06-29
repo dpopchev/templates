@@ -254,7 +254,7 @@ unittest: development
 	@$(python) -m $(unittest_module)
 	@$(call log,'unittests',$(donestr))
 
-mypy_module := mypy --pretty
+mypy_module := mypy --pretty --strict
 
 ifdef should_generate_report
 	mypy_module += --junit-xml=test-results/mypy/results.xml
