@@ -18,143 +18,161 @@ FORCE:
 inspect-%: FORCE
 	@echo $($*)
 
-# standard status messages to be used for logging;
-# length is fixed to 4 charters
+# logging uses it to evaluate terminal width if present; else fullbacks to 80
 TERM ?=
+
+# logging status messages with fixed length of 4
 donestr := done
 failstr := fail
 infostr := info
 warnstr := warn
 
-# justify stdout log message using terminal screen size, if available
-# otherwise use predefined values
+# Logging function: [STATUS] Message (truncated to fit terminal width)
 define log
-if [ ! -z "$(TERM)" ]; then \
-	printf "%-$$(($$(tput cols) - 7))s[%-4s]\n" $(1) $(2);\
+	if [ ! -z "$(TERM)" ]; then \
+		max_msg_width=$$(($$(tput cols) - 6 - 10)); \
+		status="[$(2)]"; \
+		msg="$(1)"; \
+		if [[ "$${#msg}" -gt $$max_msg_width ]]; then \
+			msg="$$(echo "$$msg" | cut -c1-$$max_msg_width)..."; \
+		fi; \
+		printf "%s %s\n" "$$status" "$$msg"; \
 	else \
-	printf "%-73s[%4s] \n" $(1) $(2);\
+		max_msg_width=$$((40 - 6 - 10)); \
+		status="[$(2)]"; \
+		msg="$(1)"; \
+		if [[ "$${#msg}" -gt $$max_msg_width ]]; then \
+			msg="$$(echo "$$msg" | cut -c1-$$max_msg_width)..."; \
+		fi; \
+		printf "%s %s\n" "$$status" "$$msg"; \
 	fi
 endef
 
-define add_gitignore
-echo $(1) >> .gitignore;
-sort --unique --output .gitignore{,};
+# add line and preserve uniqueness of the file,
+# useful for gitignore and a-like
+define add_line
+	echo $(1) >> $(2);\
+	sort --unique --output $(2){,}
 endef
 
-define del_gitignore
-if [ -e .gitignore ]; then \
-	sed --in-place '\,$(1),d' .gitignore;\
-	sort --unique --output .gitignore{,};\
+# del line and preserve uniqueness of the file,
+# useful for gitignore and a-like
+define del_line
+	if [[ -e $(2) ]]; then \
+		sed --in-place '\,$(1),d' $(2);\
+		sort --unique --output $(2){,};\
 	fi
 endef
 
-stamp_suffix := stamp
-stamp_dir := .stamps
-
-$(stamp_dir):
-	@$(call add_gitignore,$@)
-	@mkdir -p $@
-
-.PHONY: clean-stampdir
-clean-stampdir:
-	@rm -rf $(stamp_dir)
-	@$(call del_gitignore,$(stamp_dir))
-
-src_dir := src
-tests_dir := tests
-workspace_dir := workspace
-data_dir := data
-
-$(src_dir) $(tests_dir):
-	@mkdir -p $@
-
-$(workspace_dir):
-	@mkdir -p $@
-	@$(call add_gitignore,$@/)
-
-package := mypackage
 venv := .venv
 pyseed ?= $(shell command -v python3 2> /dev/null)
 python := $(venv)/bin/python
-pip := $(python) -m pip --disable-pip-version-check
-requirements := requirements.txt
-requirements_stamp := $(stamp_dir)/$(requirements).$(stamp_suffix)
-
-.PHONY: venv ### install and setup virtual python environment
-venv: $(requirements_stamp)
-
-$(requirements_stamp): $(requirements) $(python) | $(stamp_dir)
-	@$(pip) install --upgrade --requirement $< > /dev/null
-	@sort --unique --output $<{,}
-	@touch $@
-	@$(call log,'install venv requirements',$(donestr))
-
-$(python):
-	@$(pyseed) -m venv $(venv)
-	@$(pip) install --upgrade pip > /dev/null
-	@$(pip) install --upgrade build > /dev/null
-	@$(call add_gitignore,$(venv))
-	@$(call add_gitignore,__pycache__)
-	@$(call log,'make venv using $(pyseed)',$(donestr))
+pip := $(venv)/bin/pip
+requirements := requirements
+gitignore := .gitignore
 
 $(requirements):
-	@echo "pytest" >> $@
-	@echo "pytest-cov" >> $@
-	@echo "pytest-mock" >> $@
-	@echo "pytest-datafiles" >> $@
-	@echo "pytest-datadir" >> $@
-	@echo "pylint" >> $@
-	@echo "pylint-junit" >> $@
-	@echo "autopep8" >> $@
-	@echo "mypy" >> $@
-	@echo "add-trailing-comma" >> $@
-	@echo "isort" >> $@
-	@echo "pynvim" >> $@
+	@mkdir -p $@
+
+.PHONY: venv ### build local python environment
+venv: $(python) requirements-pip
+
+requirements-pip := $(requirements)/pip.txt
+
+.PHONY: requirements-pip ### install required pinned pip
+requirements-pip: $(python)
+	@$(pip) install -r $(requirements-pip)
+	@$(call log,required pip installed,$(donestr))
+
+$(python): | $(requirements)
+	@$(pyseed) -m venv $(venv)
+	@$(pip) install --upgrade pip > /dev/null
+	@$(pip) freeze --all | grep 'pip==' > $(requirements-pip)
+	@$(call log,pip version requirment set,$(donestr))
+	@$(pip) install --upgrade build > /dev/null
+	@$(call add_line,$(venv),$(gitignore))
+	@$(call add_line,__pycache__,$(gitignore))
+	@$(call log,venv created using $(pyseed),$(donestr))
 
 .PHONY: clean-venv ###
 clean-venv:
-	@rm -rf $(venv) $(requirements_stamp)
+	@rm -rf $(venv) $(requirements-pip)
+
+source_code := src
+tests := tests
+workspace := workspace
+
+$(source_code) $(tests):
+	@mkdir -p $@
+
+$(workspace):
+	@mkdir -p $@
+	@$(call add_line,$@,$(gitignore))
 
 packagerc := pyproject.toml
-sample_package := $(src_dir)/$(package)
-sample_module := $(sample_package)/sample.py
-sample_tests := $(tests_dir)/sample
-sample_module_test := $(sample_tests)/test_zero_function.py
-sample_pytyped_marker := $(sample_package)/py.typed
-sample_init := $(sample_package)/__init__.py
-sample_readme := README.md
-sample_license := LICENSE
+license := LICENSE
+readme := README.md
 
-.PHONY: sample-project ### template project structure with simple sample
-sample-project: $(packagerc)
-sample-project: $(sample_module) $(sample_module_test)
-sample-project: $(sample_pytyped_marker) $(sample_init)
-sample-project: $(sample_init) $(sample_readme) $(sample_license)
+.PHONY: init ### template project structure
+init: $(packagerc) $(readme) $(license)| $(source_code) $(tests) $(workspace)
+	@git init > /dev/null
+	@$(call log,git initialized,$(donestr))
+	@$(call log,rename <PACKAGENAME> placeholder,$(warnstr))
 
-$(sample_package) $(sample_tests):
-	@mkdir --parents $@
+$(packagerc):
+	@echo '[build-system]' > $@
+	@echo 'requires = ["setuptools"]' >> $@
+	@echo 'build-backend = "setuptools.build_meta"' >> $@
+	@echo '' >> $@
+	@echo '[project]' >> $@
+	@echo 'name = "<PACKAGENAME>"' >> $@
+	@echo 'version = "0.0.1"' >> $@
+	@echo 'requires-python = ">=$(shell ($(python) --version 2> /dev/null || echo "3.10") | grep -oP "\d.\d+")"' >> $@
+	@echo 'dependencies = []' >> $@
+	@echo '[tool.setuptools.package-data]' >> $@
+	@echo '"<PACKAGENAME>" = ["py.typed"]' >> $@
+	@echo '[tool.setuptools.packages.find]' >> $@
+	@echo 'where = ["src"]' >> $@
+	@echo '[tool.distutils.egg_info]' >> $@
+	@echo 'egg_base = "$(workspace)"' >> $@
+	@echo '[tool.pytest.ini_options]' >> $@
+	@echo 'addopts = "--quiet -rfE --showlocals --doctest-modules --doctest-continue-on-failure --cov=src --cov-branch"' >> $@
+	@echo 'testpaths = ["src", "tests"]' >> $@
+	@echo 'doctest_optionflags = "NORMALIZE_WHITESPACE ELLIPSIS"' >> $@
+	@echo '[tool.pylint]' >> $@
+	@echo 'max-line-length = 80' >> $@
+	@echo 'good-names = ["df", "np"]' >> $@
+	@echo '[tool.black]' >> $@
+	@echo 'line-length = 80' >> $@
+	@echo "include = '\.pyi?$$'" >> $@
+	@echo "extend-exclude = '\( $(workspace) \)'" >> $@
+	@echo '[tool.isort]' >> $@
+	@echo 'profile = "black"' >> $@
+	@echo '[tool.mypy]' >> $@
+	@echo 'disallow_untyped_defs = true' >> $@
+	@echo 'show_error_codes = true' >> $@
+	@echo 'no_implicit_optional = true' >> $@
+	@echo 'warn_return_any = true' >> $@
+	@echo 'warn_unused_ignores = true' >> $@
+	@echo 'exclude = ["scripts", "workspace", "tests"]' >> $@
+	@echo '[tool.pyright]' >> $@
+	@echo 'reportMissingTypeArgument = true' >> $@
+	@echo 'strictListInference = true' >> $@
+	@$(call log,$@ sample created,$(donestr))
 
-$(sample_module): | $(sample_package)
-	@echo "def sample() -> int: return 0" > $@
-	@$(call log,'make sample $@',$(donestr))
+$(license):
+	@echo 'MIT License' > $@
+	@echo '[get the text](https://choosealicense.com/licenses/mit/)' >> $@
+	@$(call log,$@ sample created,$(donestr))
 
-$(sample_module_test): | $(sample_tests)
-	@echo "from $(basename $(notdir $(sample_package))).sample import sample" > $@
-	@echo "def test_scenario_1(): assert sample() == 0" >> $@
-	@$(call log,'make sample $@',$(donestr))
-
-$(sample_init) $(sample_pytyped_marker): | $(sample_package)
-	@touch $@
-	@$(call log,'make sample $@',$(donestr))
-
-$(sample_readme):
-	@echo '# $(package)' > $@
+$(readme):
+	@echo '# <PACKAGENAME>' > $@
 	@echo 'Elevator pitch.' >> $@
 	@echo '## Install' >> $@
 	@echo '```' >> $@
 	@echo 'git clone --depth 1 <URL>' >> $@
-	@echo 'cd $(subst _,-,$(package))' >> $@
-	@echo 'make development' >> $@
+	@echo 'cd <PACKAGENAME>' >> $@
+	@echo 'make dev' >> $@
 	@echo 'make check' >> $@
 	@echo '```' >> $@
 	@echo 'If more context is needed then rename section to `Installation`.' >> $@
@@ -167,224 +185,215 @@ $(sample_readme):
 	@echo '- [makeareadme](https://www.makeareadme.com/)' >> $@
 	@echo '## License' >> $@
 	@echo '[MIT](LICENSE)' >> $@
-	@$(call log,'make sample $@',$(donestr))
+	@$(call log,$@ sample created,$(donestr))
 
-$(sample_license):
-	@echo 'MIT License' > $@
-	@echo '[get the text](https://choosealicense.com/licenses/mit/)' >> $@
-	@$(call log,'make sample $@',$(donestr))
-
-.PHONY: clean-sample-code ### remove sample_* related files
-clean-sample-code:
-	@rm -rf $(sample_module) $(sample_tests)
-	@$(call log,'clean $(sample_package) and $(sample_tests)',$(donestr))
-
-package_egg := $(workspace_dir)/$(package).egg-info
-
-.PHONY: development ### make venv and install the package into it
-development: venv $(package_egg)
-
-$(package_egg): $(packagerc) $(python) | $(workspace_dir)
+.PHONY: dev ### make development python environment
+dev: venv requirements-dev
 	@$(pip) install --force-reinstall --editable . > /dev/null
-	@$(call log,'$(package) installed into venv',$(donestr))
+	@$(call log,development package installed,$(donestr))
 
-$(packagerc):
-	@echo '[build-system]' > $@
-	@echo 'requires = ["setuptools"]' >> $@
-	@echo 'build-backend = "setuptools.build_meta"' >> $@
-	@echo '' >> $@
-	@echo '[project]' >> $@
-	@echo 'name = "$(package)"' >> $@
-	@echo 'version = "0.0.1"' >> $@
-	@echo 'requires-python = ">=$(shell ($(python) --version 2> /dev/null || echo "3.10") | grep -oP "\d.\d+")"' >> $@
-	@echo 'dependencies = []' >> $@
-	@echo '[tool.setuptools.package-data]' >> $@
-	@echo '"$(package)" = ["py.typed"]' >> $@
-	@echo '[tool.setuptools.packages.find]' >> $@
-	@echo 'where = ["src"]' >> $@
-	@echo '[tool.distutils.egg_info]' >> $@
-	@echo 'egg_base = "build"' >> $@
-	@$(call log,'make sample $@',$(donestr))
+requirements-dev := $(requirements)/dev.txt
 
-.PHONY: uninstall-package ### uninstall package from venv
-uninstall-package:
-	@$(pip) uninstall $(package) --yes > /dev/null
-	@rm -rf $(package_egg)
-	@$(call del_gitignore,$(package_egg))
-	@$(call log,'package uninstalled from venv',$(donestr))
+.PHONY: requirements-dev ### install required pinned development packages
+requirements-dev: $(requirements-dev)
+	@$(pip) install -r $(requirements-dev) > /dev/null
+	@$(call log,development requirements installed,$(donestr))
 
-args ?= ''
-.PHONY: run ### run the package with optional args, e.g. make run args='-h'
-run: setup
-	@$(python) -m $(package) $(args)
+_init_dev_requirements := pytest pytest-cov pytest-mock pytest-datafiles pytest-datadir
+_init_dev_requirements += mypy
+_init_dev_requirements += black isort
+_init_dev_requirements += pylint pylint-junit
+_init_dev_requirements += pynvim
 
-.PHONY: check ### test, lint and coverage
-check: test lint coverage
+$(requirements-dev): $(python) | $(requirements)
+	@for p in $(_init_dev_requirements); do \
+		$(pip) install --upgrade $$p > /dev/null; \
+		$(call add_line,$$($(pip) freeze | grep "$$p=="),$(requirements-dev)); \
+		$(call log,$$p installed,$(donestr)); \
+	done
 
-.PHONY: test ### doctest, unittest and mypy
-test: doctest unittest mypy
+package ?=
 
-doctest_module := pytest
-doctest_module += --quiet
-doctest_module += -rfE
-doctest_module += --showlocals
-doctest_module += --doctest-modules
-doctest_module += --doctest-continue-on-failure
+.PHONY: add-dev-requirment ### add development required package, e.g. make add-dev-requirements-dev package=...
+add-dev-requirment:
+	@if [[ -z "$(package)" ]]; then \
+		$(call log,missing package name see help,$(failstr)); \
+		exit 1;\
+	fi
+	@$(pip) install --upgrade $(package) > /dev/null
+	@$(call del_line,$(package),$(requirements-dev))
+	@$(call add_line,$$($(pip) freeze | grep "$(package)=="),$(requirements-dev))
+	@$(call log,$$($(pip) freeze | grep "$(package)==") installed and pinned,$(donestr))
 
-ifdef should_generate_report
-	doctest_module += --junit-xml=test-results/doctests/results.xml
-endif
+.PHONY: del-dev-requirment ### del development required package, e.g. make del-dev-requirements-dev package=...
+del-dev-requirment:
+	@if [[ -z "$(package)" ]]; then \
+		$(call log,missing package name see help,$(failstr)); \
+		exit 1;\
+	fi
+	@$(pip) uninstall -y $(package) > /dev/null
+	@$(call del_line,$(package),$(requirements-dev))
+	@$(call log,$(package) uninstalled and unpinned,$(donestr))
 
-.PHONY: doctest ### run doctests
-doctest: development
-	@$(python) -m $(doctest_module) $(src_dir)/$(package) || ([ $$? = 5 ] && exit 0 || exit $$?)
-	@$(call log,'doctests',$(donestr))
+.PHONY: check ### format then test and lint
+check: format test lint
+	@$(call log,$@ completed,$(donestr))
 
-unittest_module := pytest
-unittest_module += --quiet
-unittest_module += -rfE
-unittest_module += --showlocals
-
-ifdef should_generate_report
-	unittest_module += --junit-xml=test-results/unittests/results.xml
-endif
-
-.PHONY: unittest ### run unittest
-unittest: development
-	@$(python) -m $(unittest_module)
-	@$(call log,'unittests',$(donestr))
-
-mypy_module := mypy --pretty --strict
-
-ifdef should_generate_report
-	mypy_module += --junit-xml=test-results/mypy/results.xml
-endif
-
-.PHONY: mypy ### run mypy
-mypy: development
-	@$(python) -m $(mypy_module) $(src_dir)/$(package)
-	@$(call log,'mypy',$(donestr))
-
-lint_module := pylint --fail-under=5.0
-
-ifdef should_generate_report
-	lint_module += --output-format=pylint_junit.JUnitReporter
-endif
-
-.PHONY: lint ### run lint
-lint: development
-	@$(python) -m $(lint_module) $(src_dir)/$(package)
-	@$(call log,'lint',$(donestr))
-
-coverage_module := pytest
-coverage_module += --cov=$(package)
-coverage_module += --cov-branch
-coverage_module += --cov-fail-under=50
-
-ifdef should_generate_report
-	coverage_module += --cov-report=xml:test-results/coverage/report.xml
-endif
-
-ifdef should_generate_html_report
-	coverage_module += --cov-report=html
-endif
-
-coverage_dir := .coverage
-
-.PHONY: coverage ### evaluate test coverage
-coverage: development
-	@$(call add_gitignore,$(coverage_dir))
-	@$(python) -m $(coverage_module)
-	@$(call log,'test coverage',$(donestr))
-
-formatter_module_pep8 := autopep8
-formatter_module_pep8 += --in-place
-formatter_module_pep8 += --aggressive
-
-formatter_module_import_sort := isort
-formatter_module_import_sort += --quiet
-formatter_module_import_sort += --atomic
-
-formatter_module_add_trailing_comma := add_trailing_comma
-formatter_module_add_trailing_comma += --exit-zero-even-if-changed
-
-pyfiles:=$(shell find $(src_dir)/ $(tests_dir)/ -type f -name '*.py' 2> /dev/null)
-formatter_module_pep8 += --recursive $(src_dir)/ $(tests_dir)/
-formatter_module_import_sort += $(pyfiles)
-formatter_module_add_trailing_comma += $(pyfiles) &> /dev/null
-
-.PHONY: format ### autoformat work dir and commit; fails if dirty
+.PHONY: format ###
 format:
-	@[[ -z $$(git status --porcelain) ]] || (echo 'clean the dirty working tree'; false;)
-	@$(python) -m $(formatter_module_pep8)
-	@$(python) -m $(formatter_module_import_sort)
-	@$(python) -m $(formatter_module_add_trailing_comma)
-	@git add . && git commit -m 'style: make format codebase'
-	@$(call log,'auto formatting',$(donestr))
+	@$(python) -m black .
+	@$(python) -m isort --quiet --atomic .
+	@$(call log,$@ completed,$(donestr))
 
-dist_dir := $(workspace_dir)/dist
+.PHONY: test ### doctest and unittest with coverage and static code check
+test: mypy
+	@$(python) -m pytest
+	@$(call add_line,.coverage,$(gitignore))
+	@$(call log,$@ completed,$(donestr))
 
-.PHONY: dist ### create distribution files
-dist: development test
-	@$(call add_gitignore,$(dist_dir))
-	@$(python) -m build --outdir $(dist_dir) > /dev/null
-	@$(call log,'creating distribution package into $(dist_dir)',$(donestr))
+.PHONY: mypy ### static code check
+mypy:
+	@$(python) -m mypy --pretty --strict $(source_code)
+	@$(call log,$@ completed,$(donestr))
 
-.PHONY: distclean ###
-distclean:
-	@$(call del_gitignore,$(dist_dir))
-	@rm -rf $(dist_dir)
-	@$(call log,'clean up distribution package $(dist_dir)',$(donestr))
+.PHONY: lint ###
+lint:
+	@$(python) -m pylint $(source_code)
+	@$(call log,$@ completed,$(donestr))
 
-.PHONY: run-unittest-daemon ### rerun unittest on change of any package module
-run-unittest-daemon: development
-	find $(src_dir)/$(package) -name '*.py' | entr make unittest
+.PHONY: dist ### create distribution file
+dist:
+	@$(python) -m build --outdir $(workspace) --wheel > /dev/null
+	@$(call log,dist wheel build at $(workspace),$(donestr))
 
-ipython := $(venv)/bin/ipython
-.PHONY: run-ipython ### ipython in venv
-run-ipython: $(ipython)
-	$< --colors Linux
+.PHONY: run-test-daemon ### rerun test on change of any package
+run-test-daemon:
+	@find $(source_code) -name '*.py' | entr make test
 
-$(ipython):
-	@$(pip) install ipython > /dev/null
-	@$(call log,'install ipython into virtual environment',$(donestr))
+notebooks := notebooks
 
-jupyter := $(venv)/bin/jupyter
-jupyter_extensions := jupyterlab-vim
-jupyter_extensions += jupyterlab-lsp
-jupyter_extensions += jupytext
-notebooks_dir := notebooks
-
-$(notebooks_dir):
+$(notebooks):
 	@mkdir -p $@
 
-.PHONY: run-jupyter ### jupyter lab in venv
-run-jupyter: $(jupyter) | $(notebooks_dir)
-	$< lab $(notebooks_dir)
+jupyter := $(venv)/bin/jupyter
+
+.PHONY: run-jupyter ### venv jupyter lab
+run-jupyter: $(jupyter) requirements-jupyter | $(notebooks)
+	$< lab $(notebooks)
 
 $(jupyter): $(python)
-	@$(call add_gitignore,.ipynb_checkpoints)
-	@$(pip) install jupyterlab $(jupyter_extensions) > /dev/null
-	@$(call log,'install jupyter into virtual environment',$(donestr))
+	@$(pip) install --upgrade jupyterlab > /dev/null
+	@$(pip) freeze --all | grep 'jupyterlab==' > $(requirements-jupyter)
+	@$(call log,jupyter installed,$(donestr))
 
-.PHONY: jupyter-lsp-servers ### setup lsp for jupyter trough npm
-jupyter-lsp-servers:
-	@npm install --save-dev pyright
+requirements-jupyter := $(requirements)/jupyter.txt
+
+.PHONY: requirements-jupyter ### install required pinned jupyter packages
+requirements-jupyter: $(jupyter) $(requirements-jupyter)
+	@$(pip) install -r $(requirements-jupyter) > /dev/null
+	@$(call log,jupyter requirements installed,$(donestr))
+
+_init_jupyter_requirements := jupyterlab-vim
+_init_jupyter_requirements += jupyterlab-lsp
+_init_jupyter_requirements += jupytext
+
+$(requirements-jupyter): $(python) | $(requirements)
+	@for p in $(_init_jupyter_requirements); do \
+		$(pip) install --upgrade $$p > /dev/null; \
+		$(call add_line,$$($(pip) freeze | grep "$$p=="),$(requirements-jupyter)); \
+		$(call log,$$p installed,$(donestr)); \
+	done
+
+.PHONY: add-jupyter-requirment ### add jupyter required package, e.g. make add-jupyter-requirements-dev package=...
+add-jupyter-requirment:
+	@if [[ -z "$(package)" ]]; then \
+		$(call log,missing package name see help,$(failstr)); \
+		exit 1;\
+	fi
+	@$(pip) install --upgrade $(package) > /dev/null
+	@$(call del_line,$(package),$(requirements-jupyter))
+	@$(call add_line,$$($(pip) freeze | grep "$(package)=="),$(requirements-jupyter))
+	@$(call log,$$($(pip) freeze | grep "$(package)==") installed and pinned,$(donestr))
+
+.PHONY: del-jupyter-requirment ### del development required package, e.g. make del-jupyter-requirements-dev package=...
+del-jupyter-requirment:
+	@if [[ -z "$(package)" ]]; then \
+		$(call log,missing package name see help,$(failstr)); \
+		exit 1;\
+	fi
+	@$(pip) uninstall -y $(package) > /dev/null
+	@$(call del_line,$(package),$(requirements-dev))
+	@$(call log,$(package) uninstalled and unpinned,$(donestr))
+
+.PHONY: setup-pyright ### local setup of pyright, WARN: requires npm etc
+setup-pyright: $(pyrightconfig)
+	@npm init -y
+	@npm install pyright --save-dev
+	@$(call add_line,node_modules/,$(gitignore))
+	@$(call log,pyright local setup,$(donestr))
+	@$(call log,consider adding to version control: pyrightconfig, package, package-lock,$(warnstr))
+
+pyrightconfig := pyrightconfig.json
+
+$(pyrightconfig):
+	@echo "{" > $@
+	@echo '"include": ["."],' >> $@
+	@echo '"venvPath": ".",' >> $@
+	@echo '"venv": ".venv"' >> $@
+	@echo "}" >> $@
 
 tensorboard := $(venv)/bin/tensorboard
-tensorboard_logs := $(workspace_dir)/tensorboard
+tensorboardlogs := $(workspace)/tensorboard
 
-.PHONY: run-tensorboard ### tensorboard in venv
-run-tensorboard: $(tensorboard) | $(tensorboard_logs)
-	$< --logdir $(tensorboard_logs)
+$(tensorboardlogs):
+	@mkdir -p $@
 
-$(tensorboard_logs):
-	@$(call add_gitignore,"$@/")
-	mkdir -p $@
+.PHONY: run-tensorboard ### venv tensorboard
+run-tensorboard: $(tensorboard) requirements-tensorboard
+	$< --logdir $(tensorboardlogs)
 
 $(tensorboard): $(python)
-	@$(pip) install tensorboard > /dev/null
-	@$(call log,'install tensorboard into virtual environment',$(donestr))
+	@$(pip) install --upgrade tensorboard > /dev/null
+	@$(pip) freeze --all | grep 'tensorboard==' > $(requirements-tensorboard)
+	@$(call log,jupyter installed,$(donestr))
+
+requirements-tensorboard := $(requirements)/tensorboard.txt
+
+.PHONY: requirements-tensorboard ### install required pinned tensorboard packages
+requirements-tensorboard: $(tensorboard) $(requirements-tensorboard)
+	@$(pip) install -r $(requirements-tensorboard) > /dev/null
+	@$(call log,tensorboard requirements installed,$(donestr))
+	@npm install --save-dev pyright
+
+_init_tensorboard_requirements :=
+
+$(requirements-tensorboard): $(python) | $(requirements)
+	@for p in $(_init_tensorboard_requirements); do \
+		$(pip) install --upgrade $$p > /dev/null; \
+		$(call add_line,$$($(pip) freeze | grep "$$p=="),$(requirements-tensorboard)); \
+		$(call log,$$p installed,$(donestr)); \
+	done
+
+.PHONY: add-tensorboard-requirment ### add tensorboard required package, e.g. make add-tensorboard-requirements-dev package=...
+add-tensorboard-requirment:
+	@if [[ -z "$(package)" ]]; then \
+		$(call log,missing package name see help,$(failstr)); \
+		exit 1;\
+	fi
+	@$(pip) install --upgrade $(package) > /dev/null
+	@$(call del_line,$(package),$(requirements-tensorboard))
+	@$(call add_line,$$($(pip) freeze | grep "$(package)=="),$(requirements-tensorboard))
+	@$(call log,$$($(pip) freeze | grep "$(package)==") installed and pinned,$(donestr))
+
+.PHONY: del-tensorboard-requirment ### del development required package, e.g. make del-tensorboard-requirements-dev package=...
+del-tensorboard-requirment:
+	@if [[ -z "$(package)" ]]; then \
+		$(call log,missing package name see help,$(failstr)); \
+		exit 1;\
+	fi
+	@$(pip) uninstall -y $(package) > /dev/null
+	@$(call del_line,$(package),$(requirements-dev))
+	@$(call log,$(package) uninstalled and unpinned,$(donestr))
 
 .PHONY: clean-cache ###
 clean-cache:
