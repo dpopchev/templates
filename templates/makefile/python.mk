@@ -118,6 +118,7 @@ init: $(packagerc) $(readme) $(license)| $(source_code) $(tests) $(workspace)
 	@git init > /dev/null
 	@$(call log,git initialized,$(donestr))
 	@$(call log,rename <PACKAGENAME> placeholder,$(warnstr))
+	@$(call log,set local git author with `git config user.{<name>,<email>}...,$(warnstr))
 
 $(packagerc):
 	@echo '[build-system]' > $@
