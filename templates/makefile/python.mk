@@ -100,7 +100,7 @@ $(packagerc):
 	@echo 'name = "<PACKAGENAME>"' >> $@
 	@echo 'version = "0.0.1"' >> $@
 	@echo 'requires-python = ">=$(shell ($(python) --version 2> /dev/null || echo "3.10") | grep -oP "\d.\d+")"' >> $@
-	@echo 'dependencies = ["toolz"]' >> $@
+	@echo 'dependencies = []' >> $@
 	@echo '' >> $@
 	@echo '[tool.setuptools.package-data]' >> $@
 	@echo '"<PACKAGENAME>" = ["py.typed"]' >> $@
@@ -232,6 +232,7 @@ _init_dev_requirements += mypy
 _init_dev_requirements += black isort
 _init_dev_requirements += pylint pylint_junit
 _init_dev_requirements += pynvim
+_init_dev_requirements += toolz
 
 $(requirements-dev): | $(requirements)
 	@for p in $(_init_dev_requirements); do \
@@ -308,6 +309,9 @@ stamp-jupyter := $(stamps)/jupyter
 stamp-jupyter-requirements := $(stamps)/jupyter-requirements
 notebooks := notebooks
 
+$(notebooks):
+	@mkdir -p $@
+
 jupyter: $(stamp-jupyter) $(stamp-jupyter-requirements)
 
 $(stamp-jupyter): $(stamp-venv) $(jupyter) | $(stamps)
@@ -340,8 +344,11 @@ $(requirements-jupyter): | $(requirements)
 run-jupyter: $(stamp-jupyter) $(stamp-jupyter-requirements) | $(notebooks)
 	$(jupyter) lab $(notebooks)
 
-$(notebooks):
-	@mkdir -p $@
+.PHONY: setup-local-nodejs ### jupyter uses nodejs, make latest lts locally available
+setup-local-nodejs:
+	@curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+	@$(call log,restart the shell,$(warnstr))
+	@$(call log,run: nvm install --lts && nvm use --lts,$(warnstr))
 
 .PHONY: setup-pyright ### local setup of pyright, WARN: requires npm etc
 
