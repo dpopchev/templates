@@ -100,7 +100,7 @@ $(packagerc):
 	@echo 'name = "<PACKAGENAME>"' >> $@
 	@echo 'version = "0.0.1"' >> $@
 	@echo 'requires-python = ">=$(shell ($(python) --version 2> /dev/null || echo "3.10") | grep -oP "\d.\d+")"' >> $@
-	@echo 'dependencies = []' >> $@
+	@echo 'dependencies = ["toolz"]' >> $@
 	@echo '' >> $@
 	@echo '[tool.setuptools.package-data]' >> $@
 	@echo '"<PACKAGENAME>" = ["py.typed"]' >> $@
@@ -232,7 +232,6 @@ _init_dev_requirements += mypy
 _init_dev_requirements += black isort
 _init_dev_requirements += pylint pylint_junit
 _init_dev_requirements += pynvim
-_init_dev_requirements += toolz
 
 $(requirements-dev): | $(requirements)
 	@for p in $(_init_dev_requirements); do \
