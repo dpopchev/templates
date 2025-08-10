@@ -319,6 +319,7 @@ $(stamp-jupyter): $(stamp-venv) $(jupyter) | $(stamps)
 $(jupyter):
 	@$(pip) install --upgrade jupyterlab > /dev/null
 	@$(call add_line,*.ipynb,$(gitignore))
+	@$(call add_line,.ipynb_checkpoints/,$(gitignore))
 	@$(call log,jupyterlab installed,$(donestr))
 
 $(stamp-jupyter-requirements): $(requirements-jupyter) | $(stamps)
