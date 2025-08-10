@@ -324,6 +324,7 @@ $(jupyter):
 $(stamp-jupyter-requirements): $(requirements-jupyter) | $(stamps)
 	@$(pip) install -r $(requirements-jupyter) > /dev/null
 	@$(call log,jupyter requirements installed,$(donestr))
+	@$(jupyter) lab build
 	@touch $@
 
 _init_jupyter_requirements := jupyterlab-vim
