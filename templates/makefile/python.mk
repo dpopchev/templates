@@ -341,7 +341,7 @@ $(requirements-jupyter): | $(requirements)
 
 .PHONY: run-jupyter ###
 run-jupyter: $(stamp-jupyter) $(stamp-jupyter-requirements) | $(notebooks)
-	$(jupyter) lab $(notebooks)
+	(source $(venv)/bin/activate && $(jupyter) lab $(notebooks))
 
 .PHONY: setup-local-nodejs ### jupyter uses nodejs, make latest lts locally available
 setup-local-nodejs:
