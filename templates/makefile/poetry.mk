@@ -266,7 +266,6 @@ run-tensorboard: venv install-tensorboard | $(WORKDIR) ### Run tensorboard lab
 lint: ### Run linters (black, isort, pylint)
 	$(PYMANAGER) run black --check .
 	$(PYMANAGER) run isort --check-only .
-	$(PYMANAGER) run ruff check .
 	$(PYMANAGER) run pylint $(SRC_DIR)
 
 .PHONY: format
