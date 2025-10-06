@@ -325,6 +325,16 @@ selfcheck: ### Verify top-level Makefile targets and show recipes only if they f
 		done
 	@$(call log_info,Selfcheck complete)
 
+.PHONY: tests-structure
+tests-structure: ### Create test directories mirroring src modules
+	@find $(SRC_DIR) -type f -name "*.py" ! -name "__*__.py" | while read f; do \
+		p=$${f#$(SRC_DIR)/}; \
+		m=$${p%.py}; \
+		t=$(TESTS_DIR)/$${m}; \
+		mkdir -p "$$t"; \
+		$(call log_ok,Created $$t); \
+		done
+
 .PHONY: clean-venv
 clean-venv: ### Remove virtual environment and stamps
 	@rm -rf $(VENV) $(STAMPS_DIR)
