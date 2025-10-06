@@ -335,7 +335,8 @@ clean-build: ### Remove build artifacts
 
 .PHONY: clean-pyc
 clean-pyc: ### Remove Python cache file
-	@rm -rf __pycache__/ */__pycache__/ *.py[cod]
+	@find $(SRC_DIR) $(TESTS_DIR) -type d -name '__pycache__' -exec rm -rf {} +
+	@find $(SRC_DIR) $(TESTS_DIR) -type d -name '*.py[co]' -delete
 
 .PHONY: clean-test
 clean-test: ### Remove test artifacts
