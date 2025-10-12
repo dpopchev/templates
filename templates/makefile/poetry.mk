@@ -59,6 +59,7 @@ IMAGE_NAME ?= $(notdir $(CURDIR))
 IMAGE_TAG ?= latest
 DOCKER_IMAGE := $(DIST_DIR)/docker_$(IMAGE_NAME)-$(IMAGE_TAG).tar
 COMPOSE_FILE := docker-compose.yml
+DOCKER_COMPOSE ?= podman-compose
 
 # Project metadata
 PYPROJECT := pyproject.toml
@@ -343,22 +344,54 @@ clean-test: ### Remove test artifacts
 
 ### Utilities-Docker
 
-.PHONY: docker-build
-docker-build: $(DOCKER_IMAGE) ### Build Docker image using distribution file and python-version
+.PHONY: podman-build
+podman-build: ### Use to bypass the podman-compose if needed
+	podman build -t $(IMAGE_NAME):$(IMAGE_TAG) -f $(DOCKERFILE) .
 
-$(DOCKER_IMAGE): build $(DOCKERFILE) $(PYVER) | $(DIST_DIR)
+.PHONY: docker-build
+docker-build: ### Build Docker image via Compose
+docker-build: build env-setup $(COMPOSE_FILE)
 	@$(call log_info,Building Docker image $(IMAGE_NAME):$(IMAGE_TAG)...)
 	@PYVER_VAL=$$(cat $(PYVER)); \
-	docker build \
-		--build-arg PYTHON_VERSION=$$PYVER_VAL \
-		-t $(IMAGE_NAME):$(IMAGE_TAG) .; \
-	rm -rf $@; \
-	docker save $(IMAGE_NAME):$(IMAGE_TAG) -o $@
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) build
 	@$(call log_ok,Docker image saved at $@)
 
+$(COMPOSE_FILE): | $(DOCKERFILE)
+	@$(call log_info,Missing $(COMPOSE_FILE), creating default...)
+	@echo 'version: "3.9"' > $@
+	@echo '' >> $@
+	@echo 'services:' >> $@
+	@echo '  app:' >> $@
+	@echo '    build:' >> $@
+	@echo '      context: .' >> $@
+	@echo '      dockerfile: $(DOCKERFILE)' >> $@
+	@echo '      args:' >> $@
+	@echo '        PYTHON_VERSION: $${PYTHON_VERSION}' >> $@
+	@echo '    image: $(IMAGE_NAME):$(IMAGE_TAG)' >> $@
+	@echo '    env_file:' >> $@
+	@echo '      - .env' >> $@
+	@echo '    environment:' >> $@
+	@echo '      APP_ENV: $${APP_ENV}' >> $@
+	@echo '      LOG_LEVEL: $${LOG_LEVEL}' >> $@
+	@echo '      DEBUG: $${DEBUG}' >> $@
+	@echo '      TZ: $${TZ}' >> $@
+	@echo '      DATABASE_URL: $${DATABASE_URL}' >> $@
+	@echo '      SECRET_KEY: $${SECRET_KEY}' >> $@
+	@echo '      API_TOKEN: $${API_TOKEN}' >> $@
+	@echo '      FEATURE_X_ENABLED: $${FEATURE_X_ENABLED}' >> $@
+	@echo '      MOCK_MODE: $${MOCK_MODE}' >> $@
+	@echo '    ports:' >> $@
+	@echo '      - "$${PORT}:$${PORT}"' >> $@
+	@echo '    volumes:' >> $@
+	@echo '      - ./data:$${DATA_DIR}' >> $@
+	@echo '      - $${CACHE_DIR}:/cache' >> $@
+	@echo '    command: ["python", "-c", "print('\''Composed successfully!'\'')"]' >> $@
+	@$(call log_ok,Default $(COMPOSE_FILE) created)
+
 $(DOCKERFILE):
-	@$(call log_info,Missing Dockerfile, creating default...)
+	@$(call log_info,Missing $(DOCKERFILE), creating default...)
 	@echo 'ARG PYTHON_VERSION' > $@
+	@echo '' >> $@
 	@echo 'FROM python:$${PYTHON_VERSION}-slim-bookworm' >> $@
 	@echo '' >> $@
 	@echo 'RUN set -eux; apt-get update \' >> $@
@@ -366,31 +399,42 @@ $(DOCKERFILE):
 	@echo '&& apt-get clean && rm -rf /var/lib/apt/lists/*' >> $@
 	@echo '' >> $@
 	@echo 'WORKDIR /app' >> $@
+	@echo '' >> $@
 	@echo 'COPY $(DIST_DIR)/ /app/dist/' >> $@
+	@echo '' >> $@
 	@echo 'RUN set -eux; \' >> $@
 	@echo 'LATEST=$$(ls -t /app/dist/*.whl | head -n1); \' >> $@
 	@echo 'pip install --no-cache-dir "$$LATEST"; \' >> $@
 	@echo 'rm -rf /app/dist/' >> $@
 	@echo '' >> $@
-	@echo 'CMD ["python", "-c", "print('\''Container started successfully!'\'')"]' >> $@
-	@$(call log_ok,Default Dockerfile created)
+	@echo 'CMD ["python", "-c", "print('\''Ran successfully!'\'')"]' >> $@
+	@$(call log_ok,Default $(DOCKERFILE) created)
 
 .PHONY: docker-run
-docker-run: ### Run container
-	@$(call log_info,Running Docker container $(IMAGE_NAME):$(IMAGE_TAG)...)
-	docker run --rm $(IMAGE_NAME):$(IMAGE_TAG)
+docker-run: ### Run on-off container via Compose
+docker-run: env-setup $(COMPOSE_FILE)
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) run --rm app
 
 .PHONY: docker-up
-docker-up: ### Run container using a compose file
-docker-up: $(COMPOSE_FILE) $(DOCKERFILE) $(PYVER) build
-	@_PYVER=$$(cat $(PYVER)); \
+docker-up: ### Start services(s) via Compose
+docker-up: env-setup $(COMPOSE_FILE)
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) up -d
 
+.PHONY: docker-down
+docker-down: ### Stop and remove containers
+docker-down: env-setup $(COMPOSE_FILE)
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) down
+
+.PHONY: docker-logs
+docker-logs: ### Tail logs
+docker-logs: env-setup $(COMPOSE_FILE)
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) logs -f
 
 .PHONY: docker-clean
-docker-clean: ### Remove Docker image tarball and image
+docker-clean: ### Remove images built by Compose
+docker-clean: env-setup $(COMPOSE_FILE)
 	@$(call log_info,Cleaning Docker artifacts...)
-	@rm -rf $(DOCKER_IMAGE)
-	@docker rmi -f $(IMAGE_NAME):$(IMAGE_TAG) || true
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) down --rmi all --volumes --remove-orphans
 	@$(call log_ok,Docker artifacts cleaned)
 
 ### Utilities-Dotenv
