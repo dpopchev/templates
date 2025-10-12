@@ -50,6 +50,8 @@ NOTEBOOKS_DIR := notebooks
 WORKDIR := workdir
 TENSORBOARDLOGS := $(WORKDIR)/tensorboard
 DIST_DIR := dist
+DOTENV := .env
+DOTENV_EXAMPLE := .env.example
 
 # Docker
 DOCKERFILE := Dockerfile
@@ -390,6 +392,31 @@ docker-clean: ### Remove Docker image tarball and image
 	@rm -rf $(DOCKER_IMAGE)
 	@docker rmi -f $(IMAGE_NAME):$(IMAGE_TAG) || true
 	@$(call log_ok,Docker artifacts cleaned)
+
+### Utilities-Dotenv
+
+.PHONY: env-setup ### setup an .env and example
+env-setup: $(DOTENV)
+
+$(DOTENV): $(DOTENV_EXAMPLE)
+	@[ ! -f $@ ] && cp $< $@;
+
+$(DOTENV_EXAMPLE):
+	@echo "PYTHON_VERSION=$$(cat .python-version 2>/dev/null || echo 3.11)" > $@
+	@echo "APP_ENV=dev" >> $@
+	@echo "LOG_LEVEL=debug" >> $@
+	@echo "DEBUG=true" >> $@
+	@echo "TZ=UTC" >> $@
+	@echo "PORT=8000" >> $@
+	@echo "HOST=0.0.0.0" >> $@
+	@echo "DATABASE_URL=postgresql://user:password@localhost:5432/mydb" >> $@
+	@echo "SECRET_KEY=changeme" >> $@
+	@echo "API_TOKEN=changeme" >> $@
+	@echo "DATA_DIR=/app/data" >> $@
+	@echo "CACHE_DIR=/tmp/cache" >> $@
+	@echo "FEATURE_X_ENABLED=true" >> $@
+	@echo "MOCK_MODE=false" >> $@
+	@echo "# Add more environment variables as needed" >> $@
 
 ### Utilities
 
