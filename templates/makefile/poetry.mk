@@ -51,6 +51,13 @@ WORKDIR := workdir
 TENSORBOARDLOGS := $(WORKDIR)/tensorboard
 DIST_DIR := dist
 
+# Docker
+DOCKERFILE := Dockerfile
+IMAGE_NAME ?= $(notdir $(CURDIR))
+IMAGE_TAG ?= latest
+DOCKER_IMAGE := $(DIST_DIR)/docker_$(IMAGE_NAME)-$(IMAGE_TAG).tar
+COMPOSE_FILE := docker-compose.yml
+
 # Project metadata
 PYPROJECT := pyproject.toml
 LOCKFILE := poetry.lock
@@ -292,14 +299,17 @@ coverage: ### Run tests with coverage report
 .PHONY: quality
 quality: lint typecheck test coverage ### Run all quality checks
 
-### Utilities
+### Utilities-Python
 
-.PHONY: help
-help: ### Show this help message
-	@grep -E '^(###[ ]{1,}.*|[a-zA-Z0-9_-]+:.*###)' $(MAKEFILE_LIST) \
-		| sed -E 's/^### (.*)/$(BOLD)$(BLUE)\1$(RESET)/' \
-		| sed -E 's/^([a-zA-Z0-9_-]+):.*###(.*)/    $(GREEN)\1$(RESET):\2/' \
-		| while IFS= read -r line; do printf "%b\n" "$$line"; done
+.PHONY: tests-structure
+tests-structure: ### Create test directories mirroring src modules
+	@find $(SRC_DIR) -type f -name "*.py" ! -name "__*__.py" | while read f; do \
+		p=$${f#$(SRC_DIR)/}; \
+		m=$${p%.py}; \
+		t=$(TESTS_DIR)/$${m}; \
+		mkdir -p "$$t"; \
+		$(call log_ok,Created $$t); \
+		done
 
 .PHONY: build
 build: venv $(PYPROJECT) $(LOCKFILE) | $(DIST_DIR) ### Build distribution packages
@@ -308,8 +318,87 @@ build: venv $(PYPROJECT) $(LOCKFILE) | $(DIST_DIR) ### Build distribution packag
 	@$(call log_ok,Distribution packages created at $(DIST_DIR))
 
 .PHONY: publish
-publish: build ### Publish package
+publish: build ### Publish Python package
 	@$(call log_nok,Recipe not yet implemented)
+
+.PHONY: clean-venv
+clean-venv: ### Remove virtual environment and stamps
+	@rm -rf $(VENV) $(STAMPS_DIR)
+
+
+.PHONY: clean-build
+clean-build: ### Remove build artifacts
+	@rm -rf build/ $(DIST_DIR) *.egg-info
+
+.PHONY: clean-pyc
+clean-pyc: ### Remove Python cache file
+	@find $(SRC_DIR) $(TESTS_DIR) -type d -name '__pycache__' -exec rm -rf {} +
+	@find $(SRC_DIR) $(TESTS_DIR) -type d -name '*.py[co]' -delete
+
+.PHONY: clean-test
+clean-test: ### Remove test artifacts
+	@rm -rf .pytest_cache/ .coverage htmlcov/ .mypy_cache/
+
+### Utilities-Docker
+
+.PHONY: docker-build
+docker-build: $(DOCKER_IMAGE) ### Build Docker image using distribution file and python-version
+
+$(DOCKER_IMAGE): build $(DOCKERFILE) $(PYVER) | $(DIST_DIR)
+	@$(call log_info,Building Docker image $(IMAGE_NAME):$(IMAGE_TAG)...)
+	@PYVER_VAL=$$(cat $(PYVER)); \
+	docker build \
+		--build-arg PYTHON_VERSION=$$PYVER_VAL \
+		-t $(IMAGE_NAME):$(IMAGE_TAG) .; \
+	rm -rf $@; \
+	docker save $(IMAGE_NAME):$(IMAGE_TAG) -o $@
+	@$(call log_ok,Docker image saved at $@)
+
+$(DOCKERFILE):
+	@$(call log_info,Missing Dockerfile, creating default...)
+	@echo 'ARG PYTHON_VERSION' > $@
+	@echo 'FROM python:$${PYTHON_VERSION}-slim-bookworm' >> $@
+	@echo '' >> $@
+	@echo 'RUN set -eux; apt-get update \' >> $@
+	@echo '&& apt-get install --no-install-recommends -y build-essential \' >> $@
+	@echo '&& apt-get clean && rm -rf /var/lib/apt/lists/*' >> $@
+	@echo '' >> $@
+	@echo 'WORKDIR /app' >> $@
+	@echo 'COPY $(DIST_DIR)/ /app/dist/' >> $@
+	@echo 'RUN set -eux; \' >> $@
+	@echo 'LATEST=$$(ls -t /app/dist/*.whl | head -n1); \' >> $@
+	@echo 'pip install --no-cache-dir "$$LATEST"; \' >> $@
+	@echo 'rm -rf /app/dist/' >> $@
+	@echo '' >> $@
+	@echo 'CMD ["python", "-c", "print('\''Container started successfully!'\'')"]' >> $@
+	@$(call log_ok,Default Dockerfile created)
+
+.PHONY: docker-run
+docker-run: ### Run container
+	@$(call log_info,Running Docker container $(IMAGE_NAME):$(IMAGE_TAG)...)
+	docker run --rm $(IMAGE_NAME):$(IMAGE_TAG)
+
+.PHONY: docker-up
+docker-up: ### Run container using a compose file
+docker-up: $(COMPOSE_FILE) $(DOCKERFILE) $(PYVER) build
+	@_PYVER=$$(cat $(PYVER)); \
+
+
+.PHONY: docker-clean
+docker-clean: ### Remove Docker image tarball and image
+	@$(call log_info,Cleaning Docker artifacts...)
+	@rm -rf $(DOCKER_IMAGE)
+	@docker rmi -f $(IMAGE_NAME):$(IMAGE_TAG) || true
+	@$(call log_ok,Docker artifacts cleaned)
+
+### Utilities
+
+.PHONY: help
+help: ### Show this help message
+	@grep -E '^(###[ ]{1,}.*|[a-zA-Z0-9_-]+:.*###)' $(MAKEFILE_LIST) \
+		| sed -E 's/^### (.*)/$(BOLD)$(BLUE)\1$(RESET)/' \
+		| sed -E 's/^([a-zA-Z0-9_-]+):.*###(.*)/    $(GREEN)\1$(RESET):\2/' \
+		| while IFS= read -r line; do printf "%b\n" "$$line"; done
 
 .PHONY: demo-logging
 demo-logging: ### logging messages demo
@@ -335,32 +424,5 @@ selfcheck: ### Verify top-level Makefile targets and show recipes only if they f
 		done
 	@$(call log_info,Selfcheck complete)
 
-.PHONY: tests-structure
-tests-structure: ### Create test directories mirroring src modules
-	@find $(SRC_DIR) -type f -name "*.py" ! -name "__*__.py" | while read f; do \
-		p=$${f#$(SRC_DIR)/}; \
-		m=$${p%.py}; \
-		t=$(TESTS_DIR)/$${m}; \
-		mkdir -p "$$t"; \
-		$(call log_ok,Created $$t); \
-		done
-
-.PHONY: clean-venv
-clean-venv: ### Remove virtual environment and stamps
-	@rm -rf $(VENV) $(STAMPS_DIR)
-
-.PHONY: clean-build
-clean-build: ### Remove build artifacts
-	@rm -rf build/ $(DIST_DIR) *.egg-info
-
-.PHONY: clean-pyc
-clean-pyc: ### Remove Python cache file
-	@find $(SRC_DIR) $(TESTS_DIR) -type d -name '__pycache__' -exec rm -rf {} +
-	@find $(SRC_DIR) $(TESTS_DIR) -type d -name '*.py[co]' -delete
-
-.PHONY: clean-test
-clean-test: ### Remove test artifacts
-	@rm -rf .pytest_cache/ .coverage htmlcov/ .mypy_cache/
-
 .PHONY: clean
-clean: clean-venv clean-build clean-pyc clean-test
+clean: clean-venv clean-build clean-pyc clean-test docker-clean
