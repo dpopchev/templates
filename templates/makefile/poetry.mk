@@ -400,6 +400,7 @@ env-setup: $(DOTENV)
 
 $(DOTENV): $(DOTENV_EXAMPLE)
 	@[ ! -f $@ ] && cp $< $@;
+	@$(call add_line,$@,$(GITIGNORE))
 
 $(DOTENV_EXAMPLE):
 	@echo "PYTHON_VERSION=$$(cat .python-version 2>/dev/null || echo 3.11)" > $@
