@@ -398,9 +398,10 @@ docker-clean: ### Remove Docker image tarball and image
 .PHONY: env-setup ### setup an .env and example
 env-setup: $(DOTENV)
 
-$(DOTENV): $(DOTENV_EXAMPLE)
-	@[ ! -f $@ ] && cp $< $@;
-	@$(call add_line,$@,$(GITIGNORE))
+$(DOTENV): $(STAMP_PYVER) | $(DOTENV_EXAMPLE)
+	@if [ ! -f $@ ]; then cp $(DOTENV_EXAMPLE) $@; fi
+	@_PYVER=$$(cat $(PYVER)); \
+	       sed -i.bak "s/^PYTHON_VERSION=.*/PYTHON_VERSION=$$_PYVER/" $@ && rm -f $@.bak
 
 $(DOTENV_EXAMPLE):
 	@echo "PYTHON_VERSION=$$(cat .python-version 2>/dev/null || echo 3.11)" > $@
