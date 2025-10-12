@@ -49,6 +49,7 @@ GITIGNORE := .gitignore
 NOTEBOOKS_DIR := notebooks
 WORKDIR := workdir
 TENSORBOARDLOGS := $(WORKDIR)/tensorboard
+DIST_DIR := dist
 
 # Project metadata
 PYPROJECT := pyproject.toml
@@ -61,7 +62,7 @@ README := README.md
 STAMPS_DIR := .stamps
 STAMP_PYVER := $(STAMPS_DIR)/python-version.stamp
 
-$(STAMPS_DIR) $(WORKDIR):
+$(STAMPS_DIR) $(WORKDIR) $(DIST_DIR):
 	@mkdir -p $@
 	@$(call add_line,$@/,$(GITIGNORE))
 
@@ -300,12 +301,21 @@ help: ### Show this help message
 		| sed -E 's/^([a-zA-Z0-9_-]+):.*###(.*)/    $(GREEN)\1$(RESET):\2/' \
 		| while IFS= read -r line; do printf "%b\n" "$$line"; done
 
+.PHONY: build
+build: venv $(PYPROJECT) $(LOCKFILE) | $(DIST_DIR) ### Build distribution packages
+	@$(call log_info,Building distribution package...)
+	$(PYMANAGER) build
+	@$(call log_ok,Distribution packages created at $(DIST_DIR))
+
+.PHONY: publish
+publish: build ### Publish package
+	@$(call log_nok,Recipe not yet implemented)
+
 .PHONY: demo-logging
 demo-logging: ### logging messages demo
 	@$(call log_info,What is about to be done)
 	@$(call log_ok,Something successfully ended)
 	@$(call log_nok,Something successfully failed)
-
 
 .PHONY: selfcheck
 selfcheck: ### Verify top-level Makefile targets and show recipes only if they fail
@@ -341,7 +351,7 @@ clean-venv: ### Remove virtual environment and stamps
 
 .PHONY: clean-build
 clean-build: ### Remove build artifacts
-	@rm -rf build/ dist/ *.egg-info
+	@rm -rf build/ $(DIST_DIR) *.egg-info
 
 .PHONY: clean-pyc
 clean-pyc: ### Remove Python cache file
