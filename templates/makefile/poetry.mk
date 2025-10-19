@@ -52,6 +52,7 @@ WORKDIR ?= workdir
 
 # Docker
 DOCKERFILE ?= Dockerfile
+REGISTRY ?= localhost:5000
 IMAGE_NAME ?= $(notdir $(CURDIR))
 IMAGE_TAG ?= latest
 COMPOSE_FILE ?= docker-compose.yml
@@ -324,8 +325,8 @@ build: venv $(PYPROJECT) $(LOCKFILE) | $(DIST_DIR) ### Build distribution packag
 	$(PYMANAGER) build
 	@$(call log_ok,Distribution packages created at $(DIST_DIR))
 
-.PHONY: publish
-publish: build ### Publish Python package
+.PHONY: push
+push: build ### Push Python package to registry
 	@$(call log_nok,Recipe not yet implemented)
 
 .PHONY: clean-venv
@@ -356,7 +357,6 @@ podman-build: ### Use to bypass the podman-compose if needed
 docker-build: ### Build Docker image via Compose
 docker-build: build env-setup $(COMPOSE_FILE)
 	@$(call log_info,Building Docker image $(IMAGE_NAME):$(IMAGE_TAG)...)
-	@PYVER_VAL=$$(cat $(PYVER)); \
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) build
 	@$(call log_ok,Docker image saved at $@)
 
@@ -369,7 +369,7 @@ $(COMPOSE_FILE): | $(DOCKERFILE)
 	@echo '      dockerfile: $(DOCKERFILE)' >> $@
 	@echo '      args:' >> $@
 	@echo '        PYTHON_VERSION: $${PYTHON_VERSION}' >> $@
-	@echo '    image: $(IMAGE_NAME):$(IMAGE_TAG)' >> $@
+	@echo '    image: $${REGISTRY}/$${IMAGE_NAME}:$${IMAGE_TAG}' >> $@
 	@echo '    env_file:' >> $@
 	@echo '      - .env' >> $@
 	@echo '    environment:' >> $@
@@ -427,10 +427,20 @@ docker-down: ### Stop and remove containers
 docker-down: env-setup $(COMPOSE_FILE)
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) down
 
+.PHONY: docker-reup
+docker-reup: ### Rebuild and Start services(s) via Compose
+docker-reup: env-setup $(COMPOSE_FILE) docker-build
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) up -d
+
 .PHONY: docker-logs
 docker-logs: ### Tail logs
 docker-logs: env-setup $(COMPOSE_FILE)
 	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) logs -f
+
+.PHONY: docker-push
+docker-push: ### Push to registry
+docker-push: env-setup $(COMPOSE_FILE)
+	$(DOCKER_COMPOSE) -f $(COMPOSE_FILE) push
 
 .PHONY: docker-clean
 docker-clean: ### Remove images built by Compose
@@ -445,13 +455,13 @@ $(DOTENV).mk: $(DOTENV)
 	@sed '/^#/d;/^$$/d;s/^/export /' $< > $@
 	@$(call add_line,$@,$(GITIGNORE))
 
-
 .PHONY: env-setup
 env-setup: $(DOTENV) ### setup an .env and example
+	@$(call add_line,$<,$(GITIGNORE))
+	@$(call add_line,$<.*,$(GITIGNORE))
 
-$(DOTENV): | $(STAMP_PYVER) $(DOTENV_EXAMPLE)
+$(DOTENV): $(STAMP_PYVER) | $(DOTENV_EXAMPLE)
 	@if [ ! -f $@ ]; then cp $(DOTENV_EXAMPLE) $@; fi
-	@$(call add_line,$@,$(GITIGNORE)))
 	@_PYVER=$$(cat $(PYVER)); \
 	       sed -i.bak "s/^PYTHON_VERSION=.*/PYTHON_VERSION=$$_PYVER/" $@ && rm -f $@.bak
 
@@ -470,6 +480,7 @@ $(DOTENV_EXAMPLE):
 	@echo "CACHE_DIR=/tmp/cache" >> $@
 	@echo "FEATURE_X_ENABLED=true" >> $@
 	@echo "MOCK_MODE=false" >> $@
+	@echo "REGISTRY=localhost:5000" >> $@
 	@echo "IMAGE_NAME=$$(basename $$(pwd))" >> $@
 	@echo "IMAGE_TAG=latest" >> $@
 	@echo "DOCKER_COMPOSE=docker compose" >> $@
@@ -479,7 +490,7 @@ $(DOTENV_EXAMPLE):
 
 .PHONY: help
 help: ### Show this help message
-	@grep -E '^(###[ ]{1,}.*|[a-zA-Z0-9_-]+:.*###)' $(MAKEFILE_LIST) \
+	@grep -E '^(###[ ]{1,}.*|[a-zA-Z0-9_-]+:.*###)' Makefile \
 		| sed -E 's/^### (.*)/$(BOLD)$(BLUE)\1$(RESET)/' \
 		| sed -E 's/^([a-zA-Z0-9_-]+):.*###(.*)/    $(GREEN)\1$(RESET):\2/' \
 		| while IFS= read -r line; do printf "%b\n" "$$line"; done
