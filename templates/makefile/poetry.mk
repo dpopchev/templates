@@ -458,7 +458,6 @@ $(DOTENV).mk: $(DOTENV)
 .PHONY: env-setup
 env-setup: $(DOTENV) ### setup an .env and example
 	@$(call add_line,$<,$(GITIGNORE))
-	@$(call add_line,$<.*,$(GITIGNORE))
 
 $(DOTENV): $(STAMP_PYVER) | $(DOTENV_EXAMPLE)
 	@if [ ! -f $@ ]; then cp $(DOTENV_EXAMPLE) $@; fi
