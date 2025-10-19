@@ -64,7 +64,7 @@ IMAGE_NAME ?= $(notdir $(CURDIR))
 IMAGE_TAG ?= latest
 DOCKER_IMAGE := $(DIST_DIR)/docker_$(IMAGE_NAME)-$(IMAGE_TAG).tar
 COMPOSE_FILE := docker-compose.yml
-DOCKER_COMPOSE ?= podman-compose
+DOCKER_COMPOSE ?= docker-compose
 
 # Project metadata
 PYPROJECT := pyproject.toml
@@ -366,9 +366,7 @@ docker-build: build env-setup $(COMPOSE_FILE)
 
 $(COMPOSE_FILE): | $(DOCKERFILE)
 	@$(call log_info,Missing $(COMPOSE_FILE), creating default...)
-	@echo 'version: "3.9"' > $@
-	@echo '' >> $@
-	@echo 'services:' >> $@
+	@echo 'services:' > $@
 	@echo '  app:' >> $@
 	@echo '    build:' >> $@
 	@echo '      context: .' >> $@
@@ -450,7 +448,7 @@ docker-clean: env-setup $(COMPOSE_FILE)
 .PHONY: env-setup
 env-setup: $(DOTENV) ### setup an .env and example
 
-$(DOTENV): $(STAMP_PYVER) | $(DOTENV_EXAMPLE)
+$(DOTENV): | $(STAMP_PYVER) $(DOTENV_EXAMPLE)
 	@if [ ! -f $@ ]; then cp $(DOTENV_EXAMPLE) $@; fi
 	@$(call add_line,$@,$(GITIGNORE)))
 	@_PYVER=$$(cat $(PYVER)); \
@@ -471,10 +469,9 @@ $(DOTENV_EXAMPLE):
 	@echo "CACHE_DIR=/tmp/cache" >> $@
 	@echo "FEATURE_X_ENABLED=true" >> $@
 	@echo "MOCK_MODE=false" >> $@
-	@echo "" >> $@
-	@echo "IMAGE_NAME=$((basename $$(pwd)))" >> $@
+	@echo "IMAGE_NAME=$$(basename $$(pwd))" >> $@
 	@echo "IMAGE_TAG=latest" >> $@
-	@echo "DOCKER_COMPOSE=podman-compose" >> $@
+	@echo "DOCKER_COMPOSE=docker compose" >> $@
 	@echo "# Add more environment variables as needed" >> $@
 
 ### Utilities
