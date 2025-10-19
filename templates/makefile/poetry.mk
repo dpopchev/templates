@@ -41,14 +41,6 @@ log_info = $(call log,$(BLUE),$(1))
 log_ok = $(call log,$(GREEN),$(1))
 log_nok = $(call log,$(RED),$(1))
 
-DOTENV := .env
-DOTENV_EXAMPLE := .env.example
-
-ifneq (,$(wildcard $(DOTENV)))
-	include $(DOTENV)
-	export $(shell cut -d= -f1 $(DOTENV))
-endif
-
 DEFAULT_PY := $(shell command -v python3)
 PYMANAGER := poetry
 SRC_DIR := src
@@ -59,12 +51,11 @@ DIST_DIR := dist
 WORKDIR ?= workdir
 
 # Docker
-DOCKERFILE := Dockerfile
+DOCKERFILE ?= Dockerfile
 IMAGE_NAME ?= $(notdir $(CURDIR))
 IMAGE_TAG ?= latest
-DOCKER_IMAGE := $(DIST_DIR)/docker_$(IMAGE_NAME)-$(IMAGE_TAG).tar
-COMPOSE_FILE := docker-compose.yml
-DOCKER_COMPOSE ?= docker-compose
+COMPOSE_FILE ?= docker-compose.yml
+DOCKER_COMPOSE ?= dockerCOMPOSE
 
 # Project metadata
 PYPROJECT := pyproject.toml
@@ -72,6 +63,11 @@ LOCKFILE := poetry.lock
 PYVER := .python-version
 VENV := .venv
 README := README.md
+
+# dotenv
+DOTENV := .env
+DOTENV_EXAMPLE := .env.example
+-include $(DOTENV).mk
 
 # Derived paths
 TENSORBOARDLOGS := $(WORKDIR)/tensorboard
@@ -396,7 +392,7 @@ $(COMPOSE_FILE): | $(DOCKERFILE)
 
 $(DOCKERFILE):
 	@$(call log_info,Missing $(DOCKERFILE), creating default...)
-	@echo 'ARG PYTHON_VERSION' > $@
+	@echo 'ARG PYTHON_VERSION=3.12' > $@
 	@echo '' >> $@
 	@echo 'FROM python:$${PYTHON_VERSION}-slim-bookworm' >> $@
 	@echo '' >> $@
@@ -444,6 +440,11 @@ docker-clean: env-setup $(COMPOSE_FILE)
 	@$(call log_ok,Docker artifacts cleaned)
 
 ### Utilities-Dotenv
+
+$(DOTENV).mk: $(DOTENV)
+	@sed '/^#/d;/^$$/d;s/^/export /' $< > $@
+	@$(call add_line,$@,$(GITIGNORE))
+
 
 .PHONY: env-setup
 env-setup: $(DOTENV) ### setup an .env and example
