@@ -63,50 +63,18 @@ PYPROJECT := pyproject.toml
 SRC_DIR   := src
 DIST_DIR  := dist
 
-# ──────────────────────────────────────────────────────────────────────────────
-# pyenv — optional but recommended for hermetic Python version management
-#
-# Contract:
-#   - pyenv is detected via PYENV_ROOT (default: ~/.pyenv).
-#   - If pyenv is absent the Makefile falls back to whatever `python` /
-#     `python3` is on PATH — it never hard-fails.
-#   - .python-version pins the exact CPython version (e.g. 3.12.3).
-#     Commit this file; CI reads it too.
-#   - `make pyenv-install` installs that version if it is missing.
-#   - `make venv` automatically calls pyenv-install when pyenv is present,
-#     so `make install` is always a single-step bootstrap.
-#
-# First-time machine setup (if pyenv is not yet installed):
-#   curl https://pyenv.run | bash          # installs pyenv + pyenv-virtualenv
-#   # Add to your shell init (~/.bashrc / ~/.zshrc / config.fish):
-#   #   export PYENV_ROOT="$HOME/.pyenv"
-#   #   export PATH="$PYENV_ROOT/bin:$PATH"
-#   #   eval "$(pyenv init -)"
-#   exec $SHELL
-#   make pyenv-install                     # installs the pinned CPython build
-#   make install                           # creates venv + installs deps
-# ──────────────────────────────────────────────────────────────────────────────
-
-PYENV_ROOT ?= $(HOME)/.pyenv
-PYENV      := $(PYENV_ROOT)/bin/pyenv
+# Path to the Python interpreter passed to Poetry.
+# The developer is responsible for ensuring this interpreter exists
+# (install via pyenv, system packages, deadsnakes PPA, etc.).
+# Override at the command line: PYTHON=/home/user/.pyenv/versions/3.12.13/bin/python make venv
+PYTHON ?= python$(shell cat $(PYVER))
 
 # ──────────────────────────────────────────────────────────────────────────────
 ### Environment
 # ──────────────────────────────────────────────────────────────────────────────
 
-.PHONY: pyenv-install
-pyenv-install: ## Install the Python version in .python-version via pyenv
-	$(call log_info,Checking pyenv...)
-	@if [ ! -x "$(PYENV)" ]; then \
-	  printf "$(BOLD)$(YELLOW)%s$(RESET) %s\n" "[WARN]" "pyenv not found at $(PYENV) — skipping (using system Python)" >&2; \
-	  exit 0; \
-	fi
-	$(call log_info,Ensuring Python $$(cat $(PYVER)) is installed via pyenv...)
-	@$(PYENV) install --skip-existing $$(cat $(PYVER))
-	$(call log_ok,Python $$(cat $(PYVER)) available)
-
 .PHONY: venv
-venv: pyenv-install ## Create venv or rebuild it if .python-version has drifted
+venv: ## Create venv or rebuild it if .python-version has drifted
 	$(call log_info,Checking Python version drift...)
 	@if [ -d "$(VENV)" ]; then \
 	  CURRENT=$$($(VENV)/bin/python -V 2>/dev/null || echo none); \
@@ -119,13 +87,9 @@ venv: pyenv-install ## Create venv or rebuild it if .python-version has drifted
 	    rm -rf $(VENV); \
 	  fi; \
 	fi
-	$(call log_info,Creating virtual environment...)
+	$(call log_info,Creating virtual environment using $(PYTHON)...)
 	@poetry config virtualenvs.in-project true --local
-	@if [ -x "$(PYENV)" ]; then \
-	  poetry env use $$($(PYENV) which python); \
-	else \
-	  poetry env use $$(cat $(PYVER)); \
-	fi
+	@poetry env use $(PYTHON)
 	$(call log_ok,Virtual environment ready)
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -160,11 +124,7 @@ update: ## Resolve and update all dependencies, regenerate lockfile
 reset: clean ## Nuke everything and rebuild cleanly from lockfile
 	$(call log_info,Resetting environment from lockfile...)
 	@poetry config virtualenvs.in-project true --local
-	@if [ -x "$(PYENV)" ]; then \
-	  poetry env use $$($(PYENV) which python); \
-	else \
-	  poetry env use $$(cat $(PYVER)); \
-	fi
+	@poetry env use $(PYTHON)
 	@poetry install --sync
 	$(call log_ok,Environment reset complete)
 
