@@ -204,9 +204,9 @@ endif
 # ──────────────────────────────────────────────────────────────────────────────
 
 .PHONY: clean-venv
-clean-venv: ## Remove .venv
+clean-venv: ## Remove venv
 	@rm -rf $(VENV)
-	$(call log_ok,Removed .venv)
+	$(call log_ok,Removed venv)
 
 .PHONY: clean-build
 clean-build: ## Remove dist/, build/, *.egg-info
@@ -252,4 +252,3 @@ help: ## Show this help
 	      if ($$0 !~ /:/) { printf "\n%s\n", $$0 } \
 	      else { printf "  %-20s %s\n", $$1, $$2 } \
 	    }'
-
