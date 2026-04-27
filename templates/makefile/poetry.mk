@@ -68,7 +68,7 @@ PYPROJECT := pyproject.toml
 SRC_DIR   := src
 DIST_DIR  := dist
 
-# Path to the Python interpreter passed to Poetry.
+# Path to the Python interpreter used to create the virtual environment.
 # The developer is responsible for ensuring this interpreter exists
 # (install via pyenv, system packages, deadsnakes PPA, etc.).
 # Override at the command line: PYTHON=/home/user/.pyenv/versions/3.12.13/bin/python make venv
@@ -92,45 +92,46 @@ venv: ## Create venv or rebuild it if .python-version has drifted
 	    rm -rf $(VENV); \
 	  fi; \
 	fi
-	$(call log_info,Creating virtual environment using $(PYTHON)...)
-	@poetry config virtualenvs.in-project true --local
-	@poetry env use $(PYTHON)
+	$(call log_info,Creating virtual environment $(VENV) using $(PYTHON)...)
+	@$(PYTHON) -m venv $(VENV)
 	$(call log_ok,Virtual environment ready)
 
 # ──────────────────────────────────────────────────────────────────────────────
 ### Dependencies
 # ──────────────────────────────────────────────────────────────────────────────
 
+# Poetry respects VIRTUAL_ENV when set — it will install into the active venv
+# instead of creating or using its own managed environment.
+
 .PHONY: install
 install: venv ## Install all dependencies (main + dev groups)
 	$(call log_info,Installing all dependencies...)
-	@poetry install
+	@VIRTUAL_ENV=$(CURDIR)/$(VENV) poetry install
 	$(call log_ok,Done)
 
 .PHONY: install-prod
 install-prod: venv ## Install production dependencies only (main group)
 	$(call log_info,Installing production dependencies...)
-	@poetry install --only main
+	@VIRTUAL_ENV=$(CURDIR)/$(VENV) poetry install --only main
 	$(call log_ok,Done)
 
 .PHONY: sync
 sync: venv ## Reconcile environment to lockfile (keeps existing venv)
 	$(call log_info,Syncing to lockfile...)
-	@poetry install --sync
+	@VIRTUAL_ENV=$(CURDIR)/$(VENV) poetry install --sync
 	$(call log_ok,Done)
 
 .PHONY: update
 update: ## Resolve and update all dependencies, regenerate lockfile
 	$(call log_info,Updating dependencies...)
-	@poetry update
+	@VIRTUAL_ENV=$(CURDIR)/$(VENV) poetry update
 	$(call log_ok,Lockfile updated — run make install to apply)
 
 .PHONY: reset
 reset: clean ## Nuke everything and rebuild cleanly from lockfile
 	$(call log_info,Resetting environment from lockfile...)
-	@poetry config virtualenvs.in-project true --local
-	@poetry env use $(PYTHON)
-	@poetry install --sync
+	@$(PYTHON) -m venv $(VENV)
+	@VIRTUAL_ENV=$(CURDIR)/$(VENV) poetry install --sync
 	$(call log_ok,Environment reset complete)
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -140,32 +141,32 @@ reset: clean ## Nuke everything and rebuild cleanly from lockfile
 .PHONY: format
 format: ## Auto-format with ruff (format + fix)
 	$(call log_info,Formatting...)
-	@poetry run ruff format .
-	@poetry run ruff check --fix .
+	@VIRTUAL_ENV=$(CURDIR)/$(VENV) poetry run ruff format .
+	@VIRTUAL_ENV=$(CURDIR)/$(VENV) poetry run ruff check --fix .
 	$(call log_ok,Done)
 
 .PHONY: lint
 lint: ## Lint with ruff — no auto-fix
 	$(call log_info,Linting...)
-	@poetry run ruff check .
+	@VIRTUAL_ENV=$(CURDIR)/$(VENV) poetry run ruff check .
 	$(call log_ok,Done)
 
 .PHONY: typecheck
 typecheck: ## Static type check with mypy
 	$(call log_info,Type checking...)
-	@poetry run mypy .
+	@VIRTUAL_ENV=$(CURDIR)/$(VENV) poetry run mypy .
 	$(call log_ok,Done)
 
 .PHONY: test
 test: ## Run pytest suite
 	$(call log_info,Running tests...)
-	@poetry run pytest
+	@VIRTUAL_ENV=$(CURDIR)/$(VENV) poetry run pytest
 	$(call log_ok,Done)
 
 .PHONY: coverage
 coverage: ## Run tests with term + XML coverage report
 	$(call log_info,Running coverage...)
-	@poetry run pytest --cov=$(SRC_DIR) --cov-report=term-missing --cov-report=xml
+	@VIRTUAL_ENV=$(CURDIR)/$(VENV) poetry run pytest --cov=$(SRC_DIR) --cov-report=term-missing --cov-report=xml
 	$(call log_ok,Done)
 
 .PHONY: quality
@@ -178,7 +179,7 @@ quality: format lint typecheck coverage ## Run all quality gates (format → lin
 .PHONY: build
 build: install-prod ## Build wheel + sdist into dist/
 	$(call log_info,Building package...)
-	@poetry build
+	@VIRTUAL_ENV=$(CURDIR)/$(VENV) poetry build
 	$(call log_ok,Artefacts written to dist/)
 
 # Requires in pyproject.toml:
@@ -193,7 +194,7 @@ build: install-prod ## Build wheel + sdist into dist/
 publish: build ## Publish to Azure Artifacts (CI only — set CI=true to force locally)
 ifeq ($(CI),true)
 	$(call log_info,Publishing to Azure Artifacts...)
-	@poetry publish --repository azure-artifacts
+	@VIRTUAL_ENV=$(CURDIR)/$(VENV) poetry publish --repository azure-artifacts
 	$(call log_ok,Package published)
 else
 	$(call log_warn,Publish skipped — not in CI. Use CI=true make publish to override.)
