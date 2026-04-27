@@ -63,7 +63,7 @@ log_nok  = $(call _log_raw,$(RED),FAIL,$(1))
 CI ?= false
 
 PYVER     := .python-version
-VENV      := .venv
+VENV      := venv
 PYPROJECT := pyproject.toml
 SRC_DIR   := src
 DIST_DIR  := dist
