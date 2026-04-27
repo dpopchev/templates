@@ -11,6 +11,17 @@ MAKEFLAGS += --output-sync=target
 .DEFAULT_GOAL := help
 
 # ──────────────────────────────────────────────────────────────────────────────
+# .env  — optional, never required; CI uses pipeline variable groups instead
+# ──────────────────────────────────────────────────────────────────────────────
+
+DOTENV := .env
+
+ifneq ($(wildcard $(DOTENV)),)
+  include $(DOTENV)
+  export
+endif
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Logging
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -20,6 +31,11 @@ GREEN  := \033[32m
 YELLOW := \033[33m
 RED    := \033[31m
 RESET  := \033[0m
+
+# Suppress --warn-undefined-variables false positives for $(call) arguments
+1 :=
+2 :=
+3 :=
 
 define _log_raw
 	@{ \
@@ -38,17 +54,6 @@ log_info = $(call _log_raw,$(CYAN),INFO,$(1))
 log_ok   = $(call _log_raw,$(GREEN),DONE,$(1))
 log_warn = $(call _log_raw,$(YELLOW),WARN,$(1))
 log_nok  = $(call _log_raw,$(RED),FAIL,$(1))
-
-# ──────────────────────────────────────────────────────────────────────────────
-# .env  — optional, never required; CI uses pipeline variable groups instead
-# ──────────────────────────────────────────────────────────────────────────────
-
-DOTENV := .env
-
-ifneq ($(wildcard $(DOTENV)),)
-  include $(DOTENV)
-  export
-endif
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Config
@@ -239,7 +244,7 @@ demo-logging: ## Demonstrate all log levels
 
 .PHONY: help
 help: ## Show this help
-	@grep -E '^(###[ ].+|[a-zA-Z0-9_%/-]+:.*##[^#])' $(MAKEFILE_LIST) \
+	@grep -E '^(###[ ].+|[a-zA-Z0-9_%/-]+:.*##[^#])' $(firstword $(MAKEFILE_LIST)) \
 	  | sed -E \
 	      -e 's|^### (.+)|\x1b[1;36m\1\x1b[0m|' \
 	      -e 's|^([a-zA-Z0-9_%/-]+):.*## (.+)|  \x1b[32m\1\x1b[0m:\2|' \
@@ -247,3 +252,4 @@ help: ## Show this help
 	      if ($$0 !~ /:/) { printf "\n%s\n", $$0 } \
 	      else { printf "  %-20s %s\n", $$1, $$2 } \
 	    }'
+
