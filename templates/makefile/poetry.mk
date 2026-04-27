@@ -73,17 +73,17 @@ venv: ## Create venv or rebuild it if .python-version has drifted
 	@if [ -d "$(VENV)" ]; then \
 	  CURRENT=$$($(VENV)/bin/python -V 2>/dev/null || echo none); \
 	  REQUIRED="Python $$(cat $(PYVER))"; \
-	  if [ "$$CURRENT" != "$$REQUIRED" ]; then \
-	    $(call log_warn,Drift — venv=$$CURRENT expected=$$REQUIRED removing $(VENV)); \
-	    rm -rf $(VENV); \
-	  else \
-	    $(call log_ok,$$CURRENT matches $(PYVER) — nothing to do); \
+	  if [ "$$CURRENT" = "$$REQUIRED" ]; then \
+	    printf "$(BOLD)$(GREEN)%s$(RESET) %s\n" "[DONE]" "$$CURRENT matches $(PYVER) — nothing to do" >&2; \
 	    exit 0; \
+	  else \
+	    printf "$(BOLD)$(YELLOW)%s$(RESET) %s\n" "[WARN]" "Drift — venv=$$CURRENT expected=$$REQUIRED, removing $(VENV)" >&2; \
+	    rm -rf $(VENV); \
 	  fi; \
-	fi; \
-	$(call log_info,Creating virtual environment...); \
-	poetry config virtualenvs.in-project true --local; \
-	poetry env use $$(cat $(PYVER)); \
+	fi
+	$(call log_info,Creating virtual environment...)
+	@poetry config virtualenvs.in-project true --local
+	@poetry env use $$(cat $(PYVER))
 	$(call log_ok,Virtual environment ready)
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -204,8 +204,8 @@ clean-build: ## Remove dist/, build/, *.egg-info
 
 .PHONY: clean-pyc
 clean-pyc: ## Remove __pycache__ and *.pyc / *.pyo
-	@find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null; true
-	@find . -name '*.py[co]' -delete 2>/dev/null; true
+	@find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true
+	@find . -name '*.py[co]' -delete 2>/dev/null || true
 	$(call log_ok,Bytecode cache removed)
 
 .PHONY: clean-test
@@ -238,6 +238,6 @@ help: ## Show this help
 	      -e 's|^### (.+)|\\n\x1b[1;36m\1\x1b[0m|' \
 	      -e 's|^([a-zA-Z0-9_%/-]+):.*## (.+)|  \x1b[32m\1\x1b[0m:\2|' \
 	  | awk -F: '{ \
-	      if ($$0 ~ /^\n/) { print $$0 } \
+	      if ($$0 !~ /:/) { print $$0 } \
 	      else { printf "  %-20s %s\n", $$1, $$2 } \
 	    }'
