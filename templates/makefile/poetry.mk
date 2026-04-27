@@ -281,9 +281,9 @@ demo-logging: ## Demonstrate all log levels
 help: ## Show this help
 	@grep -E '^(###[ ].+|[a-zA-Z0-9_%/-]+:.*##[^#])' $(MAKEFILE_LIST) \
 	  | sed -E \
-	      -e 's|^### (.+)|\\n\x1b[1;36m\1\x1b[0m|' \
+	      -e 's|^### (.+)|\x1b[1;36m\1\x1b[0m|' \
 	      -e 's|^([a-zA-Z0-9_%/-]+):.*## (.+)|  \x1b[32m\1\x1b[0m:\2|' \
 	  | awk -F: '{ \
-	      if ($$0 !~ /:/) { print $$0 } \
+	      if ($$0 !~ /:/) { printf "\n%s\n", $$0 } \
 	      else { printf "  %-20s %s\n", $$1, $$2 } \
 	    }'
